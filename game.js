@@ -2,9 +2,9 @@
 const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
 const W=96,H=60,C=10,EMPTY=0,LAND=1,TRAIL=2;
 const MODES={
- easy:{lives:5,target:.68,balls:2,ballSpeed:2.1,hunterStep:.11},
- normal:{lives:3,target:.72,balls:3,ballSpeed:2.5,hunterStep:.085},
- hard:{lives:3,target:.78,balls:4,ballSpeed:3.0,hunterStep:.06}
+ easy:{lives:5,target:.68,balls:2,ballSpeed:2.5,hunterStep:.075},
+ normal:{lives:3,target:.72,balls:3,ballSpeed:3.2,hunterStep:.05},
+ hard:{lives:3,target:.78,balls:4,ballSpeed:3.8,hunterStep:.038}
 };
 let difficulty='easy',theme='classic',grid,player,enemies,hunter,dir={x:0,y:0},nextDir={x:0,y:0},inputHeld=false,running=false,paused=false,lives=5,level=1,score=0,last=0,acc=0,hunterAcc=0;
 let bgImage=null,bgPool=[],lastBg=-1,levelComplete=false,completeUntil=0,completeStarted=0,fireworks=[];
@@ -22,17 +22,17 @@ function renderThemeButtons(){
  Object.values(themes).forEach((t,i)=>{const b=document.createElement('button');b.className='theme'+(t.id===theme?' active':'');b.dataset.theme=t.id;b.textContent=t.label||t.id.toUpperCase();b.addEventListener('click',()=>selectTheme(t.id));box.appendChild(b)});
 }
 function selectTheme(id){
- theme=id;document.querySelectorAll('.theme').forEach(x=>x.classList.toggle('active',x.dataset.theme===id));loadThemeBackgrounds(id);
+ theme=id;document.querySelectorAll('.theme').forEach(x=>x.classList.toggle('active',x.dataset.theme===id));return loadThemeBackgrounds(id);
 }
 function loadThemeBackgrounds(id){
  const t=themes[id];bgPool=[];bgImage=null;lastBg=-1;
  if(!t||t.type==='classic'||!t.path)return Promise.resolve();
- return fetch('backgrounds/'+t.path+'/backgrounds.json',{cache:'no-store'}).then(r=>r.ok?r.json():[]).then(files=>{bgPool=Array.isArray(files)?files.map(x=>'backgrounds/'+t.path+'/'+x):[];if(bgPool.length)pickBackground()}).catch(()=>{bgPool=[]});
+ return fetch('backgrounds/'+t.path+'/backgrounds.json',{cache:'no-store'}).then(r=>r.ok?r.json():[]).then(files=>{bgPool=Array.isArray(files)?files.map(x=>'backgrounds/'+t.path+'/'+x):[];return bgPool.length?pickBackground():undefined}).catch(()=>{bgPool=[]});
 }
 function pickBackground(){
- const t=themes[theme];if(!t||t.type==='classic'||!bgPool.length){bgImage=null;return}
+ const t=themes[theme];if(!t||t.type==='classic'||!bgPool.length){bgImage=null;return Promise.resolve()}
  let i=Math.floor(Math.random()*bgPool.length);if(bgPool.length>1&&i===lastBg)i=(i+1)%bgPool.length;
- lastBg=i;const im=new Image();im.onload=()=>bgImage=im;im.src=bgPool[i];
+ lastBg=i;return new Promise(resolve=>{const im=new Image();im.onload=()=>{bgImage=im;resolve()};im.onerror=()=>{bgImage=null;resolve()};im.src=bgPool[i]});
 }
 function resetLevel(){
  levelComplete=false;completeUntil=0;completeStarted=0;fireworks=[];
@@ -43,7 +43,7 @@ function resetLevel(){
  dir={x:0,y:0};nextDir={x:0,y:0};inputHeld=false;enemies=[];
  const m=MODES[difficulty],count=Math.min(m.balls+Math.floor((level-1)/2),9);
  for(let i=0;i<count;i++){const s=m.ballSpeed;enemies.push({x:15+Math.random()*(W-30),y:12+Math.random()*(H-24),vx:(Math.random()<.5?-1:1)*(4+level*.25)*s,vy:(Math.random()<.5?-1:1)*(3.5+level*.22)*s,r:.55})}
- if(themes[theme]?.type!=='classic')pickBackground();else bgImage=null;updateUI();
+ if(themes[theme]?.type==='classic')bgImage=null;updateUI();
 }
 function landRatio(){let n=0;for(const row of grid)for(const c of row)if(c===LAND)n++;return n/(W*H)}
 function updateUI(){ui.level.textContent=level;ui.lives.textContent=lives;ui.area.textContent=Math.floor(landRatio()*100)+'%';ui.score.textContent=score}
@@ -96,6 +96,14 @@ function updateEnemies(dt){
   if(gx>=0&&gy>=0&&gx<W&&gy<H&&grid[gy][gx]===TRAIL){loseLife();return}
   const dx=e.x-(player.x+.5),dy=e.y-(player.y+.5);if(dx*dx+dy*dy<1.5&&player.onTrail){loseLife();return}
  }
+ for(let i=0;i<enemies.length;i++)for(let j=i+1;j<enemies.length;j++){
+  const a=enemies[i],b=enemies[j],dx=b.x-a.x,dy=b.y-a.y,min=a.r+b.r,d2=dx*dx+dy*dy;
+  if(d2>0&&d2<min*min){
+   const d=Math.sqrt(d2),nx=dx/d,ny=dy/d,overlap=(min-d)/2;
+   a.x-=nx*overlap;a.y-=ny*overlap;b.x+=nx*overlap;b.y+=ny*overlap;
+   const avx=a.vx,avy=a.vy;a.vx=b.vx;a.vy=b.vy;b.vx=avx;b.vy=avy;
+  }
+ }
 }
 function moveHunter(){
  if(!hunter)return;
@@ -124,22 +132,16 @@ function imageRect(){
  if(ir>cr){dh=canvas.height;dw=dh*ir;dx=(canvas.width-dw)/2;dy=0}else{dw=canvas.width;dh=dw/ir;dx=0;dy=(canvas.height-dh)/2}
  return {dx,dy,dw,dh};
 }
-function revealProgress(){return levelComplete?Math.min(1,(performance.now()-completeStarted)/1100):0}
+function revealProgress(){if(!levelComplete)return 0;const t=Math.min(1,(performance.now()-completeStarted)/1800);return t*t*(3-2*t)}
 function drawImageClippedToLand(){
  if(!bgImage)return false;
  const r=imageRect(),p=revealProgress();
- if(levelComplete&&p>0){
-  ctx.save();ctx.drawImage(bgImage,r.dx,r.dy,r.dw,r.dh);
-  if(p<1){
-   ctx.globalCompositeOperation='destination-in';
-   ctx.fillStyle='rgba(255,255,255,'+p+')';ctx.fillRect(0,0,canvas.width,canvas.height);
-   ctx.beginPath();for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(grid[y][x]===LAND)ctx.rect(x*C,y*C,C+.5,C+.5);
-   ctx.fillStyle='#fff';ctx.fill();
-  }
-  ctx.restore();return true;
+ if(levelComplete){
+  ctx.save();ctx.globalAlpha=p;ctx.drawImage(bgImage,r.dx,r.dy,r.dw,r.dh);ctx.restore();
+  ctx.save();ctx.beginPath();for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(grid[y][x]===LAND)ctx.rect(x*C,y*C,C+.5,C+.5);
+  ctx.clip();ctx.globalAlpha=1;ctx.drawImage(bgImage,r.dx,r.dy,r.dw,r.dh);ctx.restore();return true;
  }
- ctx.save();ctx.beginPath();
- for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(grid[y][x]===LAND)ctx.rect(x*C,y*C,C+.5,C+.5);
+ ctx.save();ctx.beginPath();for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(grid[y][x]===LAND)ctx.rect(x*C,y*C,C+.5,C+.5);
  ctx.clip();ctx.drawImage(bgImage,r.dx,r.dy,r.dw,r.dh);ctx.restore();return true;
 }
 function drawLandTint(alpha){
@@ -176,7 +178,7 @@ function loop(t){const dt=Math.min(.033,(t-last)/1000||0);last=t;if(running&&!pa
 function showPause(){if(!running||levelComplete)return;paused=true;stopPlayer();pressedKeys.clear();ui.pauseOverlay.classList.remove('hidden')}
 function hidePause(){paused=false;ui.pauseOverlay.classList.add('hidden')}
 function mainMenu(){paused=false;running=false;stopPlayer();pressedKeys.clear();ui.pauseOverlay.classList.add('hidden');ui.overlay.classList.remove('hidden');document.getElementById('menuTitle').textContent='XONIX';document.getElementById('menuText').textContent='Conquista il campo, rivela lo sfondo e non farti prendere.';document.getElementById('difficultyBox').style.display='grid';document.getElementById('themeBox').style.display='grid';document.getElementById('startBtn').textContent='GIOCA'}
-function start(){const m=MODES[difficulty];lives=m.lives;level=1;score=0;running=true;paused=false;ui.pauseOverlay.classList.add('hidden');ui.overlay.classList.add('hidden');resetLevel()}
+async function start(){const m=MODES[difficulty];lives=m.lives;level=1;score=0;running=false;paused=false;ui.pauseOverlay.classList.add('hidden');ui.overlay.classList.add('hidden');if(themes[theme]?.type!=='classic'&&!bgPool.length)await loadThemeBackgrounds(theme);else if(themes[theme]?.type!=='classic'&&!bgImage)await pickBackground();resetLevel();running=true}
 document.querySelectorAll('.diff').forEach(b=>b.addEventListener('click',()=>{difficulty=b.dataset.difficulty;document.querySelectorAll('.diff').forEach(x=>x.classList.toggle('active',x===b))}));
 
 document.getElementById('startBtn').addEventListener('click',start);
