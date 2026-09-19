@@ -132,12 +132,19 @@ function imageRect(){
  if(ir>cr){dh=canvas.height;dw=dh*ir;dx=(canvas.width-dw)/2;dy=0}else{dw=canvas.width;dh=dw/ir;dx=0;dy=(canvas.height-dh)/2}
  return {dx,dy,dw,dh};
 }
-function revealProgress(){if(!levelComplete)return 0;const t=Math.min(1,(performance.now()-completeStarted)/1800);return t*t*(3-2*t)}
+function revealProgress(){if(!levelComplete)return 0;const t=Math.min(1,(performance.now()-completeStarted)/2200);return t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2}
 function drawImageClippedToLand(){
  if(!bgImage)return false;
  const r=imageRect(),p=revealProgress();
  if(levelComplete){
-  ctx.save();ctx.globalAlpha=p;ctx.drawImage(bgImage,r.dx,r.dy,r.dw,r.dh);ctx.restore();
+  const edge=canvas.width*p,feather=90;
+  ctx.save();
+  ctx.beginPath();ctx.rect(0,0,Math.max(0,edge-feather),canvas.height);ctx.clip();ctx.drawImage(bgImage,r.dx,r.dy,r.dw,r.dh);ctx.restore();
+  if(edge>0&&edge<canvas.width+feather){
+   ctx.save();ctx.beginPath();ctx.rect(Math.max(0,edge-feather),0,Math.min(feather,canvas.width),canvas.height);ctx.clip();
+   const g=ctx.createLinearGradient(edge-feather,0,edge,0);g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(1,'rgba(255,255,255,0)');
+   ctx.drawImage(bgImage,r.dx,r.dy,r.dw,r.dh);ctx.globalCompositeOperation='destination-in';ctx.fillStyle=g;ctx.fillRect(edge-feather,0,feather,canvas.height);ctx.restore();
+  }
   ctx.save();ctx.beginPath();for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(grid[y][x]===LAND)ctx.rect(x*C,y*C,C+.5,C+.5);
   ctx.clip();ctx.globalAlpha=1;ctx.drawImage(bgImage,r.dx,r.dy,r.dw,r.dh);ctx.restore();return true;
  }
@@ -147,7 +154,11 @@ function drawImageClippedToLand(){
 function drawLandTint(alpha){
  if(alpha<=0)return;
  ctx.fillStyle='rgba(8,91,130,'+alpha+')';
- if(levelComplete){ctx.fillRect(0,0,canvas.width,canvas.height);return}
+ if(levelComplete){
+  const p=revealProgress(),edge=canvas.width*p;
+  ctx.fillRect(edge,0,canvas.width-edge,canvas.height);
+  ctx.save();ctx.beginPath();for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(grid[y][x]===LAND)ctx.rect(x*C,y*C,C+.5,C+.5);ctx.clip();ctx.fillStyle='rgba(8,91,130,'+(.48*(1-p))+')';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.restore();return
+ }
  for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(grid[y][x]===LAND)ctx.fillRect(x*C,y*C,C+.5,C+.5);
 }
 function draw(){
@@ -161,7 +172,7 @@ function draw(){
  }
  if(hasBg){
   let tint=.48;
-  if(levelComplete){tint=.48*(1-revealProgress())}
+  if(levelComplete){tint=.48}
   drawLandTint(tint);
  }
  if(!levelComplete){
