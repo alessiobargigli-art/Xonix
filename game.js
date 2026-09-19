@@ -28,7 +28,7 @@ function resetLevel(){
  grid=Array.from({length:H},()=>Array(W).fill(EMPTY));
  for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(x<3||y<3||x>=W-3||y>=H-3)grid[y][x]=LAND;
  player={x:Math.floor(W/2),y:H-2,onTrail:false};
- hunter={x:4,y:H-2};hunterAcc=0;
+ hunter={x:4,y:3,vx:1,vy:1};hunterAcc=0;
  dir={x:0,y:0};nextDir={x:0,y:0};enemies=[];
  const m=MODES[difficulty],count=Math.min(m.balls+Math.floor((level-1)/2),9);
  for(let i=0;i<count;i++){const s=m.ballSpeed;enemies.push({x:15+Math.random()*(W-30),y:12+Math.random()*(H-24),vx:(Math.random()<.5?-1:1)*(4+level*.25)*s,vy:(Math.random()<.5?-1:1)*(3.5+level*.22)*s,r:1.1})}
@@ -58,7 +58,7 @@ function capture(){
  updateUI();
 }
 function clearTrail(){for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(grid[y][x]===TRAIL)grid[y][x]=EMPTY}
-function respawn(){player={x:Math.floor(W/2),y:H-2,onTrail:false};hunter={x:4,y:H-2};dir={x:0,y:0};nextDir={x:0,y:0}}
+function respawn(){player={x:Math.floor(W/2),y:H-2,onTrail:false};hunter={x:4,y:3,vx:1,vy:1};dir={x:0,y:0};nextDir={x:0,y:0}}
 function loseLife(){
  clearTrail();lives--;respawn();updateUI();
  if(lives<=0){running=false;ui.overlay.classList.remove('hidden');document.getElementById('menuTitle').textContent='GAME OVER';document.getElementById('menuText').textContent='Punteggio '+score;document.getElementById('difficultyBox').style.display='grid';document.getElementById('startBtn').textContent='RIPROVA'}
@@ -75,9 +75,11 @@ function updateEnemies(dt){
 }
 function moveHunter(){
  if(!hunter)return;
- const choices=[];for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const x=hunter.x+dx,y=hunter.y+dy;if(x>=0&&y>=0&&x<W&&y<H&&grid[y][x]===LAND)choices.push({x,y,d:Math.abs(x-player.x)+Math.abs(y-player.y)+Math.random()*3})}
- if(choices.length){choices.sort((a,b)=>a.d-b.d);hunter.x=choices[0].x;hunter.y=choices[0].y}
- if(hunter.x===player.x&&hunter.y===player.y)loseLife();
+ let nx=hunter.x+hunter.vx,ny=hunter.y+hunter.vy;
+ if(ny<=0||ny>=H-1){hunter.vy*=-1;ny=hunter.y+hunter.vy}
+ if(nx<=0||nx>=W-1){hunter.vx*=-1;nx=hunter.x+hunter.vx}
+ hunter.x=nx;hunter.y=ny;
+ if(Math.abs(hunter.x-player.x)<1&&Math.abs(hunter.y-player.y)<1)loseLife();
 }
 function update(dt){
  acc+=dt;updateEnemies(dt);hunterAcc+=dt;
