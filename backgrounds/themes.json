@@ -2,18 +2,21 @@
   {
     "id": "classic",
     "label": "CLASSICO",
-    "type": "classic"
+    "type": "classic",
+    "music": "assets/music/hypnotic-loop.mp3"
   },
   {
     "id": "naples",
     "label": "NAPLES",
     "type": "images",
-    "path": "naples"
+    "path": "naples",
+    "music": "assets/music/hypnotic-loop.mp3"
   },
   {
     "id": "ninjago",
     "label": "NINJAGO",
     "type": "images",
-    "path": "ninjago"
+    "path": "ninjago",
+    "music": "assets/music/hypnotic-loop.mp3"
   }
 ]

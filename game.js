@@ -17,7 +17,27 @@ function syncMusicUI(){
  musicVolume.value=Math.round(musicLevel*100);musicVolumeValue.textContent=Math.round(musicLevel*100)+'%';
  muteBtn.textContent=musicMuted?'RIATTIVA':'MUTE';muteBtn.classList.toggle('active',musicMuted);
 }
-function startMusic(){syncMusicUI();if(bgMusic.paused)bgMusic.play().catch(()=>{})}
+function themeMusic(){return themes[theme]?.music||'assets/music/hypnotic-loop.mp3'}
+function applyThemeMusic(autoplay=false){
+ const src=themeMusic();
+ if(bgMusic.dataset.src!==src){bgMusic.dataset.src=src;bgMusic.src=src;bgMusic.load()}
+ syncMusicUI();if(autoplay&&bgMusic.paused)bgMusic.play().catch(()=>{});
+}
+function startMusic(){applyThemeMusic(true)}
+let audioCtx=null,lastBounceSound=0;
+function audioContext(){if(!audioCtx)audioCtx=new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume().catch(()=>{});return audioCtx}
+function tone(freq,duration,volume,type='square',slide=0){
+ if(musicMuted||musicLevel<=0)return;
+ const ac=audioContext(),o=ac.createOscillator(),g=ac.createGain(),now=ac.currentTime;
+ o.type=type;o.frequency.setValueAtTime(freq,now);if(slide)o.frequency.exponentialRampToValueAtTime(Math.max(40,freq+slide),now+duration);
+ g.gain.setValueAtTime(Math.max(.0001,volume*musicLevel),now);g.gain.exponentialRampToValueAtTime(.0001,now+duration);
+ o.connect(g);g.connect(ac.destination);o.start(now);o.stop(now+duration);
+}
+function bounceSound(){
+ const now=performance.now();if(now-lastBounceSound<45)return;lastBounceSound=now;
+ tone(150,.045,.055,'square',55);
+}
+function hitSound(){tone(180,.18,.16,'sawtooth',-110);setTimeout(()=>tone(85,.22,.13,'square',-35),65)}
 musicVolume.addEventListener('input',()=>{musicLevel=Number(musicVolume.value)/100;localStorage.setItem('xonix.musicVolume',musicLevel);if(musicLevel>0&&musicMuted){musicMuted=false;localStorage.setItem('xonix.musicMuted','0')}syncMusicUI();startMusic()});
 muteBtn.addEventListener('click',()=>{musicMuted=!musicMuted;localStorage.setItem('xonix.musicMuted',musicMuted?'1':'0');syncMusicUI();if(!musicMuted)startMusic()});
 syncMusicUI();
@@ -34,7 +54,7 @@ function renderThemeButtons(){
  Object.values(themes).forEach((t,i)=>{const b=document.createElement('button');b.className='theme'+(t.id===theme?' active':'');b.dataset.theme=t.id;b.textContent=t.label||t.id.toUpperCase();b.addEventListener('click',()=>selectTheme(t.id));box.appendChild(b)});
 }
 function selectTheme(id){
- theme=id;document.querySelectorAll('.theme').forEach(x=>x.classList.toggle('active',x.dataset.theme===id));return loadThemeBackgrounds(id);
+ theme=id;document.querySelectorAll('.theme').forEach(x=>x.classList.toggle('active',x.dataset.theme===id));applyThemeMusic(!bgMusic.paused);return loadThemeBackgrounds(id);
 }
 function loadThemeBackgrounds(id){
  const t=themes[id];bgPool=[];bgImage=null;lastBg=-1;
@@ -107,14 +127,14 @@ function updateCelebration(dt,t){
 function clearTrail(){for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(grid[y][x]===TRAIL)grid[y][x]=EMPTY}
 function respawn(){player={x:Math.floor(W/2),y:0,onTrail:false};hunter={x:Math.floor(W/2),y:H-1,vx:1,vy:-1};dir={x:0,y:0};nextDir={x:0,y:0};inputHeld=false}
 function loseLife(){
- clearTrail();lives--;respawn();updateUI();
+ hitSound();clearTrail();lives--;respawn();updateUI();
  if(lives<=0){running=false;ui.overlay.classList.remove('hidden');document.getElementById('menuTitle').textContent='GAME OVER';document.getElementById('menuText').textContent='Punteggio '+score;document.getElementById('difficultyBox').style.display='grid';document.getElementById('startBtn').textContent='RIPROVA'}
 }
 function updateEnemies(dt){
  for(const e of enemies){
   let nx=e.x+e.vx*dt,ny=e.y+e.vy*dt;
   const hit=(x,y)=>{const gx=Math.floor(x),gy=Math.floor(y);return gx<0||gy<0||gx>=W||gy>=H||grid[gy][gx]===LAND};
-  if(hit(nx,e.y)){e.vx*=-1;nx=e.x+e.vx*dt}if(hit(e.x,ny)){e.vy*=-1;ny=e.y+e.vy*dt}
+  if(hit(nx,e.y)){e.vx*=-1;nx=e.x+e.vx*dt;bounceSound()}if(hit(e.x,ny)){e.vy*=-1;ny=e.y+e.vy*dt;bounceSound()}
   e.x=nx;e.y=ny;const gx=Math.floor(e.x),gy=Math.floor(e.y);
   if(gx>=0&&gy>=0&&gx<W&&gy<H&&grid[gy][gx]===TRAIL){loseLife();return}
   const dx=e.x-(player.x+.5),dy=e.y-(player.y+.5);if(dx*dx+dy*dy<1.5&&player.onTrail){loseLife();return}
@@ -124,7 +144,7 @@ function updateEnemies(dt){
   if(d2>0&&d2<min*min){
    const d=Math.sqrt(d2),nx=dx/d,ny=dy/d,overlap=(min-d)/2;
    a.x-=nx*overlap;a.y-=ny*overlap;b.x+=nx*overlap;b.y+=ny*overlap;
-   const avx=a.vx,avy=a.vy;a.vx=b.vx;a.vy=b.vy;b.vx=avx;b.vy=avy;
+   const avx=a.vx,avy=a.vy;a.vx=b.vx;a.vy=b.vy;b.vx=avx;b.vy=avy;bounceSound();
   }
  }
 }
