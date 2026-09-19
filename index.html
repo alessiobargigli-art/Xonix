@@ -11,7 +11,7 @@
 <body>
   <main class="app">
     <header>
-      <div><strong>XONIX</strong><span id="version"> v0.1.0</span></div>
+      <div><strong>XONIX</strong><span id="version"> v0.2.0</span></div>
       <div class="stats">
         <span>Livello <b id="level">1</b></span>
         <span>Vite <b id="lives">3</b></span>
@@ -19,31 +19,32 @@
         <span>Punti <b id="score">0</b></span>
       </div>
     </header>
-
     <section class="game-wrap">
       <canvas id="game" width="960" height="600" aria-label="Gioco Xonix"></canvas>
       <div id="overlay" class="overlay">
         <div class="panel">
-          <h1>XONIX</h1>
-          <p>Conquista il campo tracciando linee senza farti colpire.</p>
-          <button id="startBtn">GIOCA</button>
+          <h1 id="menuTitle">XONIX</h1>
+          <p id="menuText">Conquista il campo, rivela lo sfondo e non farti prendere.</p>
+          <div id="difficultyBox" class="difficulty">
+            <span>DIFFICOLTÀ</span>
+            <div class="difficulty-buttons">
+              <button class="diff active" data-difficulty="easy">FACILE</button>
+              <button class="diff" data-difficulty="normal">NORMALE</button>
+              <button class="diff" data-difficulty="hard">DIFFICILE</button>
+            </div>
+          </div>
+          <button id="startBtn" class="start">GIOCA</button>
         </div>
       </div>
     </section>
-
     <section class="controls">
       <div class="dpad" aria-label="Comandi direzionali">
         <button data-dir="up">▲</button>
-        <div>
-          <button data-dir="left">◀</button>
-          <button data-dir="down">▼</button>
-          <button data-dir="right">▶</button>
-        </div>
+        <div><button data-dir="left">◀</button><button data-dir="down">▼</button><button data-dir="right">▶</button></div>
       </div>
       <button id="pauseBtn" class="pause">PAUSA</button>
     </section>
-
-    <footer>Frecce / WASD · Su mobile usa i controlli touch</footer>
+    <footer>Frecce / WASD · Touch: pulsanti o swipe</footer>
   </main>
   <script src="game.js"></script>
 </body>
