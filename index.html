@@ -10,12 +10,12 @@
   <link rel="apple-touch-icon" href="icon.svg" />
   <title>Xonix</title>
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="style.css?v=0.3.12" />
+  <link rel="stylesheet" href="style.css?v=0.3.13" />
 </head>
 <body>
   <main class="app">
     <header>
-      <div><strong>XONIX</strong><span id="version"> v0.3.12</span></div>
+      <div><strong>XONIX</strong><span id="version"> v0.3.13</span></div>
       <div class="stats">
         <span>Livello <b id="level">1</b></span>
         <span>Vite <b id="lives">3</b></span>
@@ -27,7 +27,7 @@
       <canvas id="game" width="960" height="600" aria-label="Gioco Xonix"></canvas>
       <div id="overlay" class="overlay">
         <div class="panel">
-          <h1 id="menuTitle">XONIX</h1>
+          <div class="title-intro"><h1 id="menuTitle">XONIX</h1><div class="by-flax">by Flax</div></div>
           <p id="menuText">Conquista il campo, rivela lo sfondo e non farti prendere.</p>
           <div id="difficultyBox" class="difficulty">
             <span>DIFFICOLTÀ</span>
@@ -57,6 +57,6 @@
     </section>
     <footer>Frecce / WASD · Touch: pulsanti o swipe</footer>
   </main>
-  <script src="game.js?v=0.3.12"></script>
+  <script src="game.js?v=0.3.13"></script>
 </body>
 </html>
