@@ -185,7 +185,7 @@ async function start(){const m=MODES[difficulty];lives=m.lives;level=1;score=0;r
 document.querySelectorAll('.diff').forEach(b=>b.addEventListener('click',()=>{difficulty=b.dataset.difficulty;document.querySelectorAll('.diff').forEach(x=>x.classList.toggle('active',x===b))}));
 
 document.getElementById('startBtn').addEventListener('click',start);
-document.getElementById('pauseBtn').addEventListener('click',showPause);
+document.getElementById('pauseBtn').addEventListener('click',()=>{if(paused)hidePause();else showPause()});
 document.getElementById('continueBtn').addEventListener('click',hidePause);
 document.getElementById('menuBtn').addEventListener('click',mainMenu);
 const keys={ArrowUp:[0,-1],w:[0,-1],W:[0,-1],ArrowDown:[0,1],s:[0,1],S:[0,1],ArrowLeft:[-1,0],a:[-1,0],A:[-1,0],ArrowRight:[1,0],d:[1,0],D:[1,0]};
@@ -197,7 +197,7 @@ function syncKeyboardDirection(){
 }
 addEventListener('keydown',e=>{
  if(keys[e.key]){e.preventDefault();if(!pressedKeys.has(e.key))pressedKeys.set(e.key,++keyOrder);syncKeyboardDirection()}
- if(e.key===' '&&running&&!e.repeat){e.preventDefault();if(paused)hidePause();else showPause()}
+ if((e.key==='Escape'||e.key===' ')&&running&&!e.repeat){e.preventDefault();if(paused)hidePause();else showPause()}
 });
 addEventListener('keyup',e=>{if(keys[e.key]){e.preventDefault();pressedKeys.delete(e.key);syncKeyboardDirection()}});
 addEventListener('blur',()=>{pressedKeys.clear();stopPlayer()});
