@@ -183,3 +183,34 @@ img,svg{-webkit-user-drag:none;user-drag:none;pointer-events:none}
   object-fit:contain;
  }
 }
+
+/* v0.3.27: true viewport-centered main menu on mobile landscape */
+@media (max-width:899px) and (orientation:landscape){
+ .overlay{
+  position:fixed;
+  inset:0;
+  width:100vw;
+  height:100dvh;
+  padding:
+   max(4px,env(safe-area-inset-top))
+   max(8px,env(safe-area-inset-right))
+   max(4px,env(safe-area-inset-bottom))
+   max(8px,env(safe-area-inset-left));
+  display:grid;
+  place-items:center;
+  overflow:hidden;
+ }
+ .overlay .panel{
+  position:relative;
+  inset:auto;
+  margin:0;
+  align-self:center;
+  justify-self:center;
+  width:min(96vw,720px);
+  max-width:100%;
+  max-height:calc(100dvh - max(8px,env(safe-area-inset-top)) - max(8px,env(safe-area-inset-bottom)));
+  padding:clamp(3px,1vh,10px) clamp(8px,2vw,18px);
+  overflow:hidden;
+  transform:none;
+ }
+}
