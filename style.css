@@ -142,3 +142,16 @@ img,svg{-webkit-user-drag:none;user-drag:none;pointer-events:none}
  .volume-row{font-size:10px;gap:6px}
  .pause-panel .audio-controls button{min-height:32px}
 }
+
+/* Main menu: vertically balanced with breathing room below the title */
+.overlay{display:flex;align-items:center;justify-content:center}
+.overlay .panel{margin:auto}
+.title-intro{margin-bottom:clamp(26px,4.2vh,46px)}
+.overlay .panel>p{margin-top:0}
+@media (orientation:landscape) and (max-height:600px){
+ .overlay .panel{margin:auto}
+ .title-intro{margin-bottom:clamp(12px,3vh,22px)}
+}
+@media (max-width:899px) and (orientation:landscape) and (max-height:430px){
+ .title-intro{margin-bottom:clamp(8px,2.4vh,14px)}
+}
