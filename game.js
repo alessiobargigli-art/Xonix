@@ -46,8 +46,9 @@ function resetLevel(){
  for(let i=0;i<count;i++)enemies.push({x:15+Math.random()*(W-30),y:12+Math.random()*(H-24),vx:(Math.random()<.5?-1:1)*4.25*s,vy:(Math.random()<.5?-1:1)*3.72*s,r:.55})
  if(themes[theme]?.type==='classic')bgImage=null;updateUI();
 }
-function landRatio(){let n=0;for(const row of grid)for(const c of row)if(c===LAND)n++;return n/(W*H)}
-function updateUI(){ui.level.textContent=level;ui.lives.textContent=lives;ui.area.textContent=Math.floor(landRatio()*100)+'%';ui.score.textContent=score}
+const INITIAL_LAND=W*H-(W-4)*(H-4),CAPTURABLE_CELLS=W*H-INITIAL_LAND;
+function capturedRatio(){let land=0;for(const row of grid)for(const c of row)if(c===LAND)land++;return Math.max(0,land-INITIAL_LAND)/CAPTURABLE_CELLS}
+function updateUI(){ui.level.textContent=level;ui.lives.textContent=lives;ui.area.textContent=(capturedRatio()*100).toFixed(1)+'%';ui.score.textContent=score}
 function setDir(x,y){nextDir={x,y};dir={x,y}}
 function stopPlayer(){inputHeld=false;dir={x:0,y:0};nextDir={x:0,y:0}}
 function stepPlayer(){
@@ -66,7 +67,7 @@ function capture(){
  for(let i=0;i<q.length;i++){const [x,y]=q[i];for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,ny=y+dy;if(nx>=0&&ny>=0&&nx<W&&ny<H&&!seen[ny][nx]&&grid[ny][nx]===EMPTY){seen[ny][nx]=true;q.push([nx,ny])}}}
  let filled=0;for(let y=0;y<H;y++)for(let x=0;x<W;x++){if(grid[y][x]===TRAIL){grid[y][x]=LAND;filled++}else if(grid[y][x]===EMPTY&&!seen[y][x]){grid[y][x]=LAND;filled++}}
  score+=filled*10*level;
- if(landRatio()>=MODES[difficulty].target){score+=1000*level;beginLevelComplete()}
+ if(capturedRatio()>=MODES[difficulty].target){score+=1000*level;beginLevelComplete()}
  updateUI();
 }
 function beginLevelComplete(){

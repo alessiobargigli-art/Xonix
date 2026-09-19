@@ -1,4 +1,4 @@
-const VERSION='0.3.10';
+const VERSION='0.3.11';
 const CACHE='xonix-'+VERSION;
 const CORE=['./','./index.html','./style.css?v='+VERSION,'./game.js?v='+VERSION,'./manifest.webmanifest','./icon.svg'];
 
