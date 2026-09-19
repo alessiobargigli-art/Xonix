@@ -1,18 +1,13 @@
 {
-  "name": "Xonix",
-  "short_name": "Xonix",
-  "start_url": "./",
-  "scope": "./",
-  "display": "standalone",
-  "orientation": "landscape",
-  "background_color": "#08111f",
-  "theme_color": "#08111f",
-  "icons": [
-    {
-      "src": "icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
-    }
-  ]
+  "name":"Xonix by Flax",
+  "short_name":"Xonix",
+  "id":"./",
+  "start_url":"./",
+  "scope":"./",
+  "display":"standalone",
+  "display_override":["standalone","fullscreen"],
+  "orientation":"landscape",
+  "background_color":"#08111f",
+  "theme_color":"#08111f",
+  "icons":[{"src":"icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]
 }
