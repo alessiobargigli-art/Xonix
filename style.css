@@ -114,3 +114,17 @@ img,svg{-webkit-user-drag:none;user-drag:none;pointer-events:none}
   background:#02060c
  }
 }
+
+/* Larger title and visible release in the main title screen */
+.menu-version{margin-top:5px;font-size:12px;letter-spacing:.18em;color:#8fa9b8;opacity:0;animation:flaxIn .45s ease-out 1.05s forwards}
+.panel .title-intro h1{font-size:clamp(76px,14vw,154px)}
+@media (orientation:landscape) and (max-height:600px){
+ .panel .title-intro h1{font-size:clamp(62px,19vh,112px);line-height:.82}
+ .by-flax{font-size:clamp(13px,3.4vh,19px);margin-top:4px}
+ .menu-version{font-size:10px;margin-top:2px}
+}
+@media (max-width:899px) and (orientation:landscape) and (max-height:430px){
+ .panel .title-intro h1{font-size:clamp(54px,20vh,86px)}
+ .menu-version{font-size:9px;margin-top:1px}
+}
+@media (prefers-reduced-motion:reduce){.menu-version{animation:none;opacity:1}}
