@@ -7,7 +7,7 @@ const MODES={
  hard:{lives:3,target:.75,balls:6,ballSpeed:5.2,hunterStep:.024}
 };
 let difficulty='easy',theme='classic',grid,player,enemies,hunter,dir={x:0,y:0},nextDir={x:0,y:0},inputHeld=false,running=false,paused=false,lives=5,level=1,score=0,last=0,acc=0,hunterAcc=0;
-let bgImage=null,bgPool=[],lastBg=-1,levelComplete=false,completeUntil=0,completeStarted=0,fireworks=[];
+let bgImage=null,bgPool=[],lastBg=-1,levelComplete=false,completeUntil=0,completeStarted=0,fireworks=[],advancingLevel=false;
 const ui={level:document.getElementById('level'),lives:document.getElementById('lives'),area:document.getElementById('area'),score:document.getElementById('score'),overlay:document.getElementById('overlay'),pauseOverlay:document.getElementById('pauseOverlay')};
 
 let themes={classic:{id:'classic',label:'CLASSICO',type:'classic'}};
@@ -78,10 +78,19 @@ function spawnFirework(){
  const cx=120+Math.random()*(canvas.width-240),cy=70+Math.random()*(canvas.height*.58);
  for(let i=0;i<34;i++){const a=Math.random()*Math.PI*2,s=45+Math.random()*150;fireworks.push({x:cx,y:cy,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:.7+Math.random()*.7,max:1.4,h:Math.floor(Math.random()*360)})}
 }
+async function advanceLevel(){
+ if(advancingLevel)return;
+ advancingLevel=true;
+ level++;
+ if(themes[theme]?.type!=='classic')await pickBackground();
+ resetLevel();
+ running=true;
+ advancingLevel=false;
+}
 function updateCelebration(dt,t){
  for(const p of fireworks){p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=80*dt;p.life-=dt}
  fireworks=fireworks.filter(p=>p.life>0);
- if(levelComplete&&t>=completeUntil){level++;running=true;resetLevel()}
+ if(levelComplete&&t>=completeUntil)advanceLevel();
 }
 function clearTrail(){for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(grid[y][x]===TRAIL)grid[y][x]=EMPTY}
 function respawn(){player={x:Math.floor(W/2),y:0,onTrail:false};hunter={x:Math.floor(W/2),y:H-1,vx:1,vy:-1};dir={x:0,y:0};nextDir={x:0,y:0};inputHeld=false}
@@ -181,7 +190,7 @@ function loop(t){const dt=Math.min(.033,(t-last)/1000||0);last=t;if(running&&!pa
 function showPause(){if(!running||levelComplete)return;paused=true;stopPlayer();pressedKeys.clear();ui.pauseOverlay.classList.remove('hidden')}
 function hidePause(){paused=false;ui.pauseOverlay.classList.add('hidden')}
 function mainMenu(){paused=false;running=false;stopPlayer();pressedKeys.clear();ui.pauseOverlay.classList.add('hidden');ui.overlay.classList.remove('hidden');document.getElementById('menuTitle').textContent='XONIX';document.getElementById('menuText').textContent='Conquista il campo, rivela lo sfondo e non farti prendere.';document.getElementById('difficultyBox').style.display='grid';document.getElementById('themeBox').style.display='grid';document.getElementById('startBtn').textContent='GIOCA'}
-async function start(){const m=MODES[difficulty];lives=m.lives;level=1;score=0;running=false;paused=false;ui.pauseOverlay.classList.add('hidden');ui.overlay.classList.add('hidden');if(themes[theme]?.type!=='classic'&&!bgPool.length)await loadThemeBackgrounds(theme);else if(themes[theme]?.type!=='classic'&&!bgImage)await pickBackground();resetLevel();running=true}
+async function start(){const m=MODES[difficulty];lives=m.lives;level=1;score=0;running=false;paused=false;advancingLevel=false;ui.pauseOverlay.classList.add('hidden');ui.overlay.classList.add('hidden');if(themes[theme]?.type!=='classic'&&!bgPool.length)await loadThemeBackgrounds(theme);else if(themes[theme]?.type!=='classic'&&!bgImage)await pickBackground();resetLevel();running=true}
 document.querySelectorAll('.diff').forEach(b=>b.addEventListener('click',()=>{difficulty=b.dataset.difficulty;document.querySelectorAll('.diff').forEach(x=>x.classList.toggle('active',x===b))}));
 
 document.getElementById('startBtn').addEventListener('click',start);
