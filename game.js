@@ -114,15 +114,28 @@ function imageRect(){
  if(ir>cr){dh=canvas.height;dw=dh*ir;dx=(canvas.width-dw)/2;dy=0}else{dw=canvas.width;dh=dw/ir;dx=0;dy=(canvas.height-dh)/2}
  return {dx,dy,dw,dh};
 }
+function revealProgress(){return levelComplete?Math.min(1,(performance.now()-completeStarted)/1100):0}
 function drawImageClippedToLand(){
  if(!bgImage)return false;
- const r=imageRect();ctx.save();ctx.beginPath();
+ const r=imageRect(),p=revealProgress();
+ if(levelComplete&&p>0){
+  ctx.save();ctx.drawImage(bgImage,r.dx,r.dy,r.dw,r.dh);
+  if(p<1){
+   ctx.globalCompositeOperation='destination-in';
+   ctx.fillStyle='rgba(255,255,255,'+p+')';ctx.fillRect(0,0,canvas.width,canvas.height);
+   ctx.beginPath();for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(grid[y][x]===LAND)ctx.rect(x*C,y*C,C+.5,C+.5);
+   ctx.fillStyle='#fff';ctx.fill();
+  }
+  ctx.restore();return true;
+ }
+ ctx.save();ctx.beginPath();
  for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(grid[y][x]===LAND)ctx.rect(x*C,y*C,C+.5,C+.5);
  ctx.clip();ctx.drawImage(bgImage,r.dx,r.dy,r.dw,r.dh);ctx.restore();return true;
 }
 function drawLandTint(alpha){
  if(alpha<=0)return;
  ctx.fillStyle='rgba(8,91,130,'+alpha+')';
+ if(levelComplete){ctx.fillRect(0,0,canvas.width,canvas.height);return}
  for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(grid[y][x]===LAND)ctx.fillRect(x*C,y*C,C+.5,C+.5);
 }
 function draw(){
@@ -131,7 +144,7 @@ function draw(){
  if(!hasBg){ctx.fillStyle='#0f708c';for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(grid[y][x]===LAND)ctx.fillRect(x*C,y*C,C,C)}
  if(hasBg){
   let tint=.48;
-  if(levelComplete){const p=Math.min(1,(performance.now()-completeStarted)/1100);tint=.48*(1-p)}
+  if(levelComplete){tint=.48*(1-revealProgress())}
   drawLandTint(tint);
  }
  if(!levelComplete){
