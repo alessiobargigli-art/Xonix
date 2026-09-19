@@ -10,16 +10,28 @@ let difficulty='easy',theme='classic',grid,player,enemies,hunter,dir={x:0,y:0},n
 let bgImage=null,bgPool=[],lastBg=-1,levelComplete=false,completeUntil=0,completeStarted=0,fireworks=[];
 const ui={level:document.getElementById('level'),lives:document.getElementById('lives'),area:document.getElementById('area'),score:document.getElementById('score'),overlay:document.getElementById('overlay'),pauseOverlay:document.getElementById('pauseOverlay')};
 
-function discoverBackgrounds(){
- fetch('backgrounds/naples/backgrounds.json',{cache:'no-store'})
-  .then(r=>r.ok?r.json():[])
-  .then(files=>{bgPool=Array.isArray(files)?files.map(x=>'backgrounds/naples/'+x):[];if(theme==='naples'&&bgPool.length)pickBackground()})
-  .catch(()=>{bgPool=[]});
+let themes={classic:{id:'classic',label:'CLASSICO',type:'classic'}};
+function loadThemes(){
+ return fetch('backgrounds/themes.json',{cache:'no-store'}).then(r=>r.ok?r.json():[]).then(list=>{
+  if(Array.isArray(list))for(const t of list)if(t&&t.id)themes[t.id]=t;
+  renderThemeButtons();return loadThemeBackgrounds(theme);
+ }).catch(()=>renderThemeButtons());
+}
+function renderThemeButtons(){
+ const box=document.getElementById('themeButtons');box.innerHTML='';
+ Object.values(themes).forEach((t,i)=>{const b=document.createElement('button');b.className='theme'+(t.id===theme?' active':'');b.dataset.theme=t.id;b.textContent=t.label||t.id.toUpperCase();b.addEventListener('click',()=>selectTheme(t.id));box.appendChild(b)});
+}
+function selectTheme(id){
+ theme=id;document.querySelectorAll('.theme').forEach(x=>x.classList.toggle('active',x.dataset.theme===id));loadThemeBackgrounds(id);
+}
+function loadThemeBackgrounds(id){
+ const t=themes[id];bgPool=[];bgImage=null;lastBg=-1;
+ if(!t||t.type==='classic'||!t.path)return Promise.resolve();
+ return fetch('backgrounds/'+t.path+'/backgrounds.json',{cache:'no-store'}).then(r=>r.ok?r.json():[]).then(files=>{bgPool=Array.isArray(files)?files.map(x=>'backgrounds/'+t.path+'/'+x):[];if(bgPool.length)pickBackground()}).catch(()=>{bgPool=[]});
 }
 function pickBackground(){
- if(theme!=='naples'||!bgPool.length){bgImage=null;return}
- let i=Math.floor(Math.random()*bgPool.length);
- if(bgPool.length>1&&i===lastBg)i=(i+1)%bgPool.length;
+ const t=themes[theme];if(!t||t.type==='classic'||!bgPool.length){bgImage=null;return}
+ let i=Math.floor(Math.random()*bgPool.length);if(bgPool.length>1&&i===lastBg)i=(i+1)%bgPool.length;
  lastBg=i;const im=new Image();im.onload=()=>bgImage=im;im.src=bgPool[i];
 }
 function resetLevel(){
@@ -31,7 +43,7 @@ function resetLevel(){
  dir={x:0,y:0};nextDir={x:0,y:0};inputHeld=false;enemies=[];
  const m=MODES[difficulty],count=Math.min(m.balls+Math.floor((level-1)/2),9);
  for(let i=0;i<count;i++){const s=m.ballSpeed;enemies.push({x:15+Math.random()*(W-30),y:12+Math.random()*(H-24),vx:(Math.random()<.5?-1:1)*(4+level*.25)*s,vy:(Math.random()<.5?-1:1)*(3.5+level*.22)*s,r:.55})}
- if(theme==='naples')pickBackground();else bgImage=null;updateUI();
+ if(themes[theme]?.type!=='classic')pickBackground();else bgImage=null;updateUI();
 }
 function landRatio(){let n=0;for(const row of grid)for(const c of row)if(c===LAND)n++;return n/(W*H)}
 function updateUI(){ui.level.textContent=level;ui.lives.textContent=lives;ui.area.textContent=Math.floor(landRatio()*100)+'%';ui.score.textContent=score}
@@ -138,8 +150,8 @@ function drawLandTint(alpha){
 }
 function draw(){
  ctx.fillStyle='#02060c';ctx.fillRect(0,0,canvas.width,canvas.height);
- const hasBg=theme==='naples'&&drawImageClippedToLand();
- if(theme==='classic'){
+ const isClassic=themes[theme]?.type==='classic';const hasBg=!isClassic&&drawImageClippedToLand();
+ if(isClassic){
   ctx.fillStyle='#0f708c';for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(grid[y][x]===LAND)ctx.fillRect(x*C,y*C,C,C);
   if(levelComplete){const p=revealProgress();ctx.fillStyle='rgba(24,179,210,'+(.55*(1-p))+')';ctx.fillRect(0,0,canvas.width,canvas.height)}
  }else if(!hasBg){
@@ -166,7 +178,7 @@ function hidePause(){paused=false;ui.pauseOverlay.classList.add('hidden')}
 function mainMenu(){paused=false;running=false;stopPlayer();pressedKeys.clear();ui.pauseOverlay.classList.add('hidden');ui.overlay.classList.remove('hidden');document.getElementById('menuTitle').textContent='XONIX';document.getElementById('menuText').textContent='Conquista il campo, rivela lo sfondo e non farti prendere.';document.getElementById('difficultyBox').style.display='grid';document.getElementById('themeBox').style.display='grid';document.getElementById('startBtn').textContent='GIOCA'}
 function start(){const m=MODES[difficulty];lives=m.lives;level=1;score=0;running=true;paused=false;ui.pauseOverlay.classList.add('hidden');ui.overlay.classList.add('hidden');resetLevel()}
 document.querySelectorAll('.diff').forEach(b=>b.addEventListener('click',()=>{difficulty=b.dataset.difficulty;document.querySelectorAll('.diff').forEach(x=>x.classList.toggle('active',x===b))}));
-document.querySelectorAll('.theme').forEach(b=>b.addEventListener('click',()=>{theme=b.dataset.theme;document.querySelectorAll('.theme').forEach(x=>x.classList.toggle('active',x===b));if(theme==='naples')pickBackground();else bgImage=null}));
+
 document.getElementById('startBtn').addEventListener('click',start);
 document.getElementById('pauseBtn').addEventListener('click',showPause);
 document.getElementById('continueBtn').addEventListener('click',hidePause);
@@ -196,6 +208,6 @@ canvas.addEventListener('pointerdown',e=>{sx=e.clientX;sy=e.clientY;canvas.setPo
 canvas.addEventListener('pointermove',e=>{if(!canvas.hasPointerCapture?.(e.pointerId))return;const dx=e.clientX-sx,dy=e.clientY-sy;if(Math.abs(dx)+Math.abs(dy)>16){inputHeld=true;if(Math.abs(dx)>Math.abs(dy))setDir(Math.sign(dx),0);else setDir(0,Math.sign(dy));sx=e.clientX;sy=e.clientY}});
 canvas.addEventListener('pointerup',e=>{e.preventDefault();stopPlayer()});
 canvas.addEventListener('pointercancel',stopPlayer);
-discoverBackgrounds();resetLevel();requestAnimationFrame(loop);
+loadThemes();resetLevel();requestAnimationFrame(loop);
 if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
 })();

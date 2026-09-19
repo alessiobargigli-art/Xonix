@@ -1,0 +1,13 @@
+[
+  {
+    "id": "classic",
+    "label": "CLASSICO",
+    "type": "classic"
+  },
+  {
+    "id": "naples",
+    "label": "NAPLES",
+    "type": "images",
+    "path": "naples"
+  }
+]

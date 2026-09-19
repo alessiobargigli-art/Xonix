@@ -1,18 +1,11 @@
-# Backgrounds
+# Background themes
 
-Inserisci qui gli sfondi del gioco.
+`themes.json` contiene l'elenco dei temi disponibili.
 
-## Nomi supportati
-Usa una numerazione progressiva a due cifre:
+Ogni tema fotografico indica una cartella tramite `path`. Dentro quella cartella, `backgrounds.json` contiene l'elenco delle immagini del tema.
 
-- 01.jpg
-- 02.jpg
-- 03.png
-- 04.webp
-- ...
+Esempio:
+- `classic`: tema tradizionale, nessuna immagine.
+- `naples`: immagini in `backgrounds/naples/`, elencate in `backgrounds/naples/backgrounds.json`.
 
-Sono supportati JPG, JPEG, PNG e WebP, fino a 40 immagini.
-
-Il gioco rileva automaticamente i file presenti e ne sceglie uno casualmente a ogni livello, evitando quando possibile di ripetere subito lo stesso sfondo.
-
-Le aree conquistate rivelano progressivamente l'immagine. Per un risultato migliore usa immagini landscape, idealmente 16:10 o vicine al rapporto del campo.
+Per aggiungere un tema fotografico basta creare la cartella, il relativo `backgrounds.json` e aggiungere la voce a `themes.json`.
