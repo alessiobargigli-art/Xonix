@@ -11,12 +11,10 @@ let bgImage=null,bgPool=[],lastBg=-1,levelComplete=false,completeUntil=0,complet
 const ui={level:document.getElementById('level'),lives:document.getElementById('lives'),area:document.getElementById('area'),score:document.getElementById('score'),overlay:document.getElementById('overlay')};
 
 function discoverBackgrounds(){
- const tries=[];
- for(let n=1;n<=40;n++)for(const ext of ['jpg','jpeg','png','webp']){
-  const name=String(n).padStart(2,'0'),url='backgrounds/'+name+'.'+ext;
-  tries.push(new Promise(resolve=>{const im=new Image();im.onload=()=>resolve(url);im.onerror=()=>resolve(null);im.src=url+'?v=2'}));
- }
- Promise.all(tries).then(found=>{bgPool=found.filter(Boolean);if(bgPool.length)pickBackground()});
+ fetch('backgrounds/backgrounds.json',{cache:'no-store'})
+  .then(r=>r.ok?r.json():[])
+  .then(files=>{bgPool=Array.isArray(files)?files.map(x=>'backgrounds/'+x):[];if(bgPool.length)pickBackground()})
+  .catch(()=>{bgPool=[]});
 }
 function pickBackground(){
  if(!bgPool.length){bgImage=null;return}
@@ -163,9 +161,18 @@ document.querySelectorAll('.diff').forEach(b=>b.addEventListener('click',()=>{di
 document.getElementById('startBtn').addEventListener('click',start);
 document.getElementById('pauseBtn').addEventListener('click',()=>{if(running){paused=!paused;document.getElementById('pauseBtn').textContent=paused?'RIPRENDI':'PAUSA'}});
 const keys={ArrowUp:[0,-1],w:[0,-1],W:[0,-1],ArrowDown:[0,1],s:[0,1],S:[0,1],ArrowLeft:[-1,0],a:[-1,0],A:[-1,0],ArrowRight:[1,0],d:[1,0],D:[1,0]};
-addEventListener('keydown',e=>{if(keys[e.key]){e.preventDefault();inputHeld=true;setDir(...keys[e.key])}if(e.key===' '&&running){e.preventDefault();paused=!paused}});
-addEventListener('keyup',e=>{if(keys[e.key]){e.preventDefault();stopPlayer()}});
-addEventListener('blur',stopPlayer);
+const pressedKeys=new Map();let keyOrder=0;
+function syncKeyboardDirection(){
+ let latest=null;
+ for(const [key,order] of pressedKeys)if(keys[key]&&(!latest||order>latest.order))latest={key,order};
+ if(latest){inputHeld=true;setDir(...keys[latest.key])}else stopPlayer();
+}
+addEventListener('keydown',e=>{
+ if(keys[e.key]){e.preventDefault();if(!pressedKeys.has(e.key))pressedKeys.set(e.key,++keyOrder);syncKeyboardDirection()}
+ if(e.key===' '&&running&&!e.repeat){e.preventDefault();paused=!paused}
+});
+addEventListener('keyup',e=>{if(keys[e.key]){e.preventDefault();pressedKeys.delete(e.key);syncKeyboardDirection()}});
+addEventListener('blur',()=>{pressedKeys.clear();stopPlayer()});
 document.querySelectorAll('[data-dir]').forEach(b=>{
  const m={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
  b.addEventListener('pointerdown',e=>{e.preventDefault();b.setPointerCapture?.(e.pointerId);inputHeld=true;setDir(...m[b.dataset.dir])});
