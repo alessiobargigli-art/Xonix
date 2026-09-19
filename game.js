@@ -2,9 +2,9 @@
 const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
 const W=96,H=60,C=10,EMPTY=0,LAND=1,TRAIL=2;
 const MODES={
- easy:{lives:5,target:.68,balls:2,ballSpeed:1.35,hunterStep:.20},
- normal:{lives:3,target:.72,balls:3,ballSpeed:1.65,hunterStep:.14},
- hard:{lives:3,target:.78,balls:4,ballSpeed:2.0,hunterStep:.09}
+ easy:{lives:5,target:.68,balls:2,ballSpeed:2.1,hunterStep:.11},
+ normal:{lives:3,target:.72,balls:3,ballSpeed:2.5,hunterStep:.085},
+ hard:{lives:3,target:.78,balls:4,ballSpeed:3.0,hunterStep:.06}
 };
 let difficulty='easy',grid,player,enemies,hunter,dir={x:0,y:0},nextDir={x:0,y:0},inputHeld=false,running=false,paused=false,lives=5,level=1,score=0,last=0,acc=0,hunterAcc=0;
 let bgImage=null,bgPool=[],lastBg=-1,levelComplete=false,completeUntil=0,completeStarted=0,fireworks=[];
@@ -27,9 +27,9 @@ function pickBackground(){
 function resetLevel(){
  levelComplete=false;completeUntil=0;completeStarted=0;fireworks=[];
  grid=Array.from({length:H},()=>Array(W).fill(EMPTY));
- for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(x<2||y<2||x>=W-2||y>=H-2)grid[y][x]=LAND;
- player={x:Math.floor(W/2),y:H-1,onTrail:false};
- hunter={x:3,y:1,vx:1,vy:1};hunterAcc=0;
+ for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(x<3||y<3||x>=W-3||y>=H-3)grid[y][x]=LAND;
+ player={x:Math.floor(W/2),y:1,onTrail:false};
+ hunter={x:Math.floor(W/2),y:H-2,vx:1,vy:-1};hunterAcc=0;
  dir={x:0,y:0};nextDir={x:0,y:0};inputHeld=false;enemies=[];
  const m=MODES[difficulty],count=Math.min(m.balls+Math.floor((level-1)/2),9);
  for(let i=0;i<count;i++){const s=m.ballSpeed;enemies.push({x:15+Math.random()*(W-30),y:12+Math.random()*(H-24),vx:(Math.random()<.5?-1:1)*(4+level*.25)*s,vy:(Math.random()<.5?-1:1)*(3.5+level*.22)*s,r:.55})}
@@ -72,7 +72,7 @@ function updateCelebration(dt,t){
  if(levelComplete&&t>=completeUntil){level++;running=true;resetLevel()}
 }
 function clearTrail(){for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(grid[y][x]===TRAIL)grid[y][x]=EMPTY}
-function respawn(){player={x:Math.floor(W/2),y:H-1,onTrail:false};hunter={x:3,y:1,vx:1,vy:1};dir={x:0,y:0};nextDir={x:0,y:0};inputHeld=false}
+function respawn(){player={x:Math.floor(W/2),y:1,onTrail:false};hunter={x:Math.floor(W/2),y:H-2,vx:1,vy:-1};dir={x:0,y:0};nextDir={x:0,y:0};inputHeld=false}
 function loseLife(){
  clearTrail();lives--;respawn();updateUI();
  if(lives<=0){running=false;ui.overlay.classList.remove('hidden');document.getElementById('menuTitle').textContent='GAME OVER';document.getElementById('menuText').textContent='Punteggio '+score;document.getElementById('difficultyBox').style.display='grid';document.getElementById('startBtn').textContent='RIPROVA'}
