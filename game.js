@@ -69,7 +69,7 @@ function capture(){
  updateUI();
 }
 function beginLevelComplete(){
- levelComplete=true;running=false;stopPlayer();completeStarted=performance.now();completeUntil=completeStarted+3600;
+ levelComplete=true;running=false;stopPlayer();completeStarted=performance.now();completeUntil=completeStarted+6000;
  for(let i=0;i<7;i++)setTimeout(()=>spawnFirework(),i*360);
 }
 function spawnFirework(){
@@ -132,24 +132,19 @@ function imageRect(){
  if(ir>cr){dh=canvas.height;dw=dh*ir;dx=(canvas.width-dw)/2;dy=0}else{dw=canvas.width;dh=dw/ir;dx=0;dy=(canvas.height-dh)/2}
  return {dx,dy,dw,dh};
 }
-function revealProgress(){if(!levelComplete)return 0;const t=Math.min(1,(performance.now()-completeStarted)/2200);return t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2}
+function revealProgress(){if(!levelComplete)return 0;const t=Math.min(1,(performance.now()-completeStarted)/2000);return 1-Math.pow(1-t,3)}
 function drawImageClippedToLand(){
  if(!bgImage)return false;
- const r=imageRect(),p=revealProgress();
- if(levelComplete){
-  const edge=canvas.width*p,feather=90;
-  ctx.save();
-  ctx.beginPath();ctx.rect(0,0,Math.max(0,edge-feather),canvas.height);ctx.clip();ctx.drawImage(bgImage,r.dx,r.dy,r.dw,r.dh);ctx.restore();
-  if(edge>0&&edge<canvas.width+feather){
-   ctx.save();ctx.beginPath();ctx.rect(Math.max(0,edge-feather),0,Math.min(feather,canvas.width),canvas.height);ctx.clip();
-   const g=ctx.createLinearGradient(edge-feather,0,edge,0);g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(1,'rgba(255,255,255,0)');
-   ctx.drawImage(bgImage,r.dx,r.dy,r.dw,r.dh);ctx.globalCompositeOperation='destination-in';ctx.fillStyle=g;ctx.fillRect(edge-feather,0,feather,canvas.height);ctx.restore();
-  }
-  ctx.save();ctx.beginPath();for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(grid[y][x]===LAND)ctx.rect(x*C,y*C,C+.5,C+.5);
-  ctx.clip();ctx.globalAlpha=1;ctx.drawImage(bgImage,r.dx,r.dy,r.dw,r.dh);ctx.restore();return true;
- }
+ const r=imageRect();
  ctx.save();ctx.beginPath();for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(grid[y][x]===LAND)ctx.rect(x*C,y*C,C+.5,C+.5);
  ctx.clip();ctx.drawImage(bgImage,r.dx,r.dy,r.dw,r.dh);ctx.restore();return true;
+}
+function drawCompletionImageLayer(){
+ if(!levelComplete||!bgImage||themes[theme]?.type==='classic')return;
+ const r=imageRect(),p=revealProgress(),cx=canvas.width/2,cy=canvas.height/2;
+ const maxR=Math.hypot(Math.max(cx,canvas.width-cx),Math.max(cy,canvas.height-cy));
+ const radius=Math.max(1,maxR*p);
+ ctx.save();ctx.beginPath();ctx.arc(cx,cy,radius,0,Math.PI*2);ctx.clip();ctx.drawImage(bgImage,r.dx,r.dy,r.dw,r.dh);ctx.restore();
 }
 function drawLandTint(alpha){
  if(alpha<=0)return;
@@ -170,17 +165,14 @@ function draw(){
  }else if(!hasBg){
   ctx.fillStyle='#0f708c';for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(grid[y][x]===LAND)ctx.fillRect(x*C,y*C,C,C)
  }
- if(hasBg){
-  let tint=.48;
-  if(levelComplete){tint=.48}
-  drawLandTint(tint);
- }
+ if(hasBg&&!levelComplete)drawLandTint(.48);
  if(!levelComplete){
   ctx.fillStyle='#f9e45b';for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(grid[y][x]===TRAIL)ctx.fillRect(x*C,y*C,C,C);
   ctx.fillStyle='#eaf6ff';ctx.fillRect(player.x*C+1,player.y*C+1,C-2,C-2);
   if(hunter){ctx.fillStyle='#ff9f1c';ctx.fillRect(hunter.x*C,hunter.y*C,C,C);ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.strokeRect(hunter.x*C+1,hunter.y*C+1,C-2,C-2)}
   for(const e of enemies){ctx.beginPath();ctx.fillStyle='#ff5470';ctx.arc(e.x*C,e.y*C,e.r*C,0,Math.PI*2);ctx.fill()}
  }else{
+  drawCompletionImageLayer();
   ctx.save();ctx.textAlign='center';ctx.font='bold 42px system-ui';ctx.fillStyle='rgba(255,255,255,.96)';ctx.strokeStyle='rgba(0,0,0,.65)';ctx.lineWidth=6;ctx.strokeText('LIVELLO COMPLETATO!',canvas.width/2,62);ctx.fillText('LIVELLO COMPLETATO!',canvas.width/2,62);ctx.restore();
  }
  for(const p of fireworks){ctx.beginPath();ctx.fillStyle='hsla('+p.h+',90%,65%,'+Math.max(0,p.life/p.max)+')';ctx.arc(p.x,p.y,3.2,0,Math.PI*2);ctx.fill()}
