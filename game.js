@@ -2,12 +2,12 @@
 const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
 const W=96,H=60,C=10,EMPTY=0,LAND=1,TRAIL=2;
 const MODES={
- easy:{lives:5,target:.68,balls:2,ballSpeed:.82,hunterStep:.20},
- normal:{lives:3,target:.72,balls:3,ballSpeed:1,hunterStep:.14},
- hard:{lives:3,target:.78,balls:4,ballSpeed:1.28,hunterStep:.09}
+ easy:{lives:5,target:.68,balls:2,ballSpeed:1.35,hunterStep:.20},
+ normal:{lives:3,target:.72,balls:3,ballSpeed:1.65,hunterStep:.14},
+ hard:{lives:3,target:.78,balls:4,ballSpeed:2.0,hunterStep:.09}
 };
 let difficulty='easy',grid,player,enemies,hunter,dir={x:0,y:0},nextDir={x:0,y:0},inputHeld=false,running=false,paused=false,lives=5,level=1,score=0,last=0,acc=0,hunterAcc=0;
-let bgImage=null,bgPool=[],lastBg=-1;
+let bgImage=null,bgPool=[],lastBg=-1,levelComplete=false,completeUntil=0,fireworks=[];
 const ui={level:document.getElementById('level'),lives:document.getElementById('lives'),area:document.getElementById('area'),score:document.getElementById('score'),overlay:document.getElementById('overlay')};
 
 function discoverBackgrounds(){
@@ -25,13 +25,14 @@ function pickBackground(){
  lastBg=i;const im=new Image();im.onload=()=>bgImage=im;im.src=bgPool[i];
 }
 function resetLevel(){
+ levelComplete=false;completeUntil=0;fireworks=[];
  grid=Array.from({length:H},()=>Array(W).fill(EMPTY));
  for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(x<3||y<3||x>=W-3||y>=H-3)grid[y][x]=LAND;
  player={x:Math.floor(W/2),y:H-2,onTrail:false};
  hunter={x:4,y:3,vx:1,vy:1};hunterAcc=0;
  dir={x:0,y:0};nextDir={x:0,y:0};inputHeld=false;enemies=[];
  const m=MODES[difficulty],count=Math.min(m.balls+Math.floor((level-1)/2),9);
- for(let i=0;i<count;i++){const s=m.ballSpeed;enemies.push({x:15+Math.random()*(W-30),y:12+Math.random()*(H-24),vx:(Math.random()<.5?-1:1)*(4+level*.25)*s,vy:(Math.random()<.5?-1:1)*(3.5+level*.22)*s,r:1.1})}
+ for(let i=0;i<count;i++){const s=m.ballSpeed;enemies.push({x:15+Math.random()*(W-30),y:12+Math.random()*(H-24),vx:(Math.random()<.5?-1:1)*(4+level*.25)*s,vy:(Math.random()<.5?-1:1)*(3.5+level*.22)*s,r:.55})}
  pickBackground();updateUI();
 }
 function landRatio(){let n=0;for(const row of grid)for(const c of row)if(c===LAND)n++;return n/(W*H)}
@@ -54,8 +55,21 @@ function capture(){
  for(let i=0;i<q.length;i++){const [x,y]=q[i];for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,ny=y+dy;if(nx>=0&&ny>=0&&nx<W&&ny<H&&!seen[ny][nx]&&grid[ny][nx]===EMPTY){seen[ny][nx]=true;q.push([nx,ny])}}}
  let filled=0;for(let y=0;y<H;y++)for(let x=0;x<W;x++){if(grid[y][x]===TRAIL){grid[y][x]=LAND;filled++}else if(grid[y][x]===EMPTY&&!seen[y][x]){grid[y][x]=LAND;filled++}}
  score+=filled*10*level;
- if(landRatio()>=MODES[difficulty].target){score+=1000*level;level++;resetLevel()}
+ if(landRatio()>=MODES[difficulty].target){score+=1000*level;beginLevelComplete()}
  updateUI();
+}
+function beginLevelComplete(){
+ levelComplete=true;running=false;stopPlayer();completeUntil=performance.now()+3200;
+ for(let i=0;i<7;i++)setTimeout(()=>spawnFirework(),i*360);
+}
+function spawnFirework(){
+ const cx=120+Math.random()*(canvas.width-240),cy=70+Math.random()*(canvas.height*.58);
+ for(let i=0;i<34;i++){const a=Math.random()*Math.PI*2,s=45+Math.random()*150;fireworks.push({x:cx,y:cy,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:.7+Math.random()*.7,max:1.4,h:Math.floor(Math.random()*360)})}
+}
+function updateCelebration(dt,t){
+ for(const p of fireworks){p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=80*dt;p.life-=dt}
+ fireworks=fireworks.filter(p=>p.life>0);
+ if(levelComplete&&t>=completeUntil){level++;running=true;resetLevel()}
 }
 function clearTrail(){for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(grid[y][x]===TRAIL)grid[y][x]=EMPTY}
 function respawn(){player={x:Math.floor(W/2),y:H-2,onTrail:false};hunter={x:4,y:3,vx:1,vy:1};dir={x:0,y:0};nextDir={x:0,y:0};inputHeld=false}
@@ -94,26 +108,33 @@ function update(dt){
  if(hunterAcc>=MODES[difficulty].hunterStep){hunterAcc=0;moveHunter()}
  while(acc>.045){stepPlayer();acc-=.045}
 }
-function drawBackground(){
- ctx.fillStyle='#02060c';ctx.fillRect(0,0,canvas.width,canvas.height);
- if(!bgImage)return;
- ctx.save();ctx.beginPath();
- for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(grid[y][x]===LAND)ctx.rect(x*C,y*C,C+.5,C+.5);
- ctx.clip();
+function paintImage(){
+ if(!bgImage)return false;
  const ir=bgImage.width/bgImage.height,cr=canvas.width/canvas.height;let dw,dh,dx,dy;
  if(ir>cr){dh=canvas.height;dw=dh*ir;dx=(canvas.width-dw)/2;dy=0}else{dw=canvas.width;dh=dw/ir;dx=0;dy=(canvas.height-dh)/2}
- ctx.drawImage(bgImage,dx,dy,dw,dh);ctx.restore();
+ ctx.drawImage(bgImage,dx,dy,dw,dh);return true;
 }
 function draw(){
- drawBackground();
- ctx.fillStyle='rgba(3,12,22,.88)';for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(grid[y][x]===EMPTY)ctx.fillRect(x*C,y*C,C,C);
- ctx.fillStyle='#f9e45b';for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(grid[y][x]===TRAIL)ctx.fillRect(x*C,y*C,C,C);
- if(!bgImage){ctx.fillStyle='#0f708c';for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(grid[y][x]===LAND)ctx.fillRect(x*C,y*C,C,C)}
- ctx.fillStyle='#eaf6ff';ctx.fillRect(player.x*C+1,player.y*C+1,C-2,C-2);
- if(hunter){ctx.fillStyle='#ff9f1c';ctx.fillRect(hunter.x*C,hunter.y*C,C,C);ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.strokeRect(hunter.x*C+1,hunter.y*C+1,C-2,C-2)}
- for(const e of enemies){ctx.beginPath();ctx.fillStyle='#ff5470';ctx.arc(e.x*C,e.y*C,e.r*C,0,Math.PI*2);ctx.fill()}
+ ctx.fillStyle='#02060c';ctx.fillRect(0,0,canvas.width,canvas.height);
+ const hasBg=paintImage();
+ if(hasBg&&!levelComplete){
+  ctx.fillStyle='rgba(8,60,82,.68)';
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(grid[y][x]===EMPTY)ctx.fillRect(x*C,y*C,C+.5,C+.5);
+ }else if(!hasBg){
+  ctx.fillStyle='#0f708c';for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(grid[y][x]===LAND)ctx.fillRect(x*C,y*C,C,C);
+  if(!levelComplete){ctx.fillStyle='rgba(3,12,22,.88)';for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(grid[y][x]===EMPTY)ctx.fillRect(x*C,y*C,C,C)}
+ }
+ if(!levelComplete){
+  ctx.fillStyle='#f9e45b';for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(grid[y][x]===TRAIL)ctx.fillRect(x*C,y*C,C,C);
+  ctx.fillStyle='#eaf6ff';ctx.fillRect(player.x*C+1,player.y*C+1,C-2,C-2);
+  if(hunter){ctx.fillStyle='#ff9f1c';ctx.fillRect(hunter.x*C,hunter.y*C,C,C);ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.strokeRect(hunter.x*C+1,hunter.y*C+1,C-2,C-2)}
+  for(const e of enemies){ctx.beginPath();ctx.fillStyle='#ff5470';ctx.arc(e.x*C,e.y*C,e.r*C,0,Math.PI*2);ctx.fill()}
+ }else{
+  ctx.save();ctx.textAlign='center';ctx.font='bold 42px system-ui';ctx.fillStyle='rgba(255,255,255,.96)';ctx.strokeStyle='rgba(0,0,0,.65)';ctx.lineWidth=6;ctx.strokeText('LIVELLO COMPLETATO!',canvas.width/2,62);ctx.fillText('LIVELLO COMPLETATO!',canvas.width/2,62);ctx.restore();
+ }
+ for(const p of fireworks){ctx.beginPath();ctx.fillStyle='hsla('+p.h+',90%,65%,'+Math.max(0,p.life/p.max)+')';ctx.arc(p.x,p.y,3.2,0,Math.PI*2);ctx.fill()}
 }
-function loop(t){const dt=Math.min(.033,(t-last)/1000||0);last=t;if(running&&!paused)update(dt);draw();requestAnimationFrame(loop)}
+function loop(t){const dt=Math.min(.033,(t-last)/1000||0);last=t;if(running&&!paused)update(dt);if(levelComplete)updateCelebration(dt,t);draw();requestAnimationFrame(loop)}
 function start(){const m=MODES[difficulty];lives=m.lives;level=1;score=0;running=true;paused=false;document.getElementById('pauseBtn').textContent='PAUSA';ui.overlay.classList.add('hidden');resetLevel()}
 document.querySelectorAll('.diff').forEach(b=>b.addEventListener('click',()=>{difficulty=b.dataset.difficulty;document.querySelectorAll('.diff').forEach(x=>x.classList.toggle('active',x===b))}));
 document.getElementById('startBtn').addEventListener('click',start);
