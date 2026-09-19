@@ -6,18 +6,18 @@ const MODES={
  normal:{lives:3,target:.72,balls:3,ballSpeed:2.5,hunterStep:.085},
  hard:{lives:3,target:.78,balls:4,ballSpeed:3.0,hunterStep:.06}
 };
-let difficulty='easy',grid,player,enemies,hunter,dir={x:0,y:0},nextDir={x:0,y:0},inputHeld=false,running=false,paused=false,lives=5,level=1,score=0,last=0,acc=0,hunterAcc=0;
+let difficulty='easy',theme='classic',grid,player,enemies,hunter,dir={x:0,y:0},nextDir={x:0,y:0},inputHeld=false,running=false,paused=false,lives=5,level=1,score=0,last=0,acc=0,hunterAcc=0;
 let bgImage=null,bgPool=[],lastBg=-1,levelComplete=false,completeUntil=0,completeStarted=0,fireworks=[];
 const ui={level:document.getElementById('level'),lives:document.getElementById('lives'),area:document.getElementById('area'),score:document.getElementById('score'),overlay:document.getElementById('overlay')};
 
 function discoverBackgrounds(){
- fetch('backgrounds/backgrounds.json',{cache:'no-store'})
+ fetch('backgrounds/naples/backgrounds.json',{cache:'no-store'})
   .then(r=>r.ok?r.json():[])
-  .then(files=>{bgPool=Array.isArray(files)?files.map(x=>'backgrounds/'+x):[];if(bgPool.length)pickBackground()})
+  .then(files=>{bgPool=Array.isArray(files)?files.map(x=>'backgrounds/naples/'+x):[];if(theme==='naples'&&bgPool.length)pickBackground()})
   .catch(()=>{bgPool=[]});
 }
 function pickBackground(){
- if(!bgPool.length){bgImage=null;return}
+ if(theme!=='naples'||!bgPool.length){bgImage=null;return}
  let i=Math.floor(Math.random()*bgPool.length);
  if(bgPool.length>1&&i===lastBg)i=(i+1)%bgPool.length;
  lastBg=i;const im=new Image();im.onload=()=>bgImage=im;im.src=bgPool[i];
@@ -31,7 +31,7 @@ function resetLevel(){
  dir={x:0,y:0};nextDir={x:0,y:0};inputHeld=false;enemies=[];
  const m=MODES[difficulty],count=Math.min(m.balls+Math.floor((level-1)/2),9);
  for(let i=0;i<count;i++){const s=m.ballSpeed;enemies.push({x:15+Math.random()*(W-30),y:12+Math.random()*(H-24),vx:(Math.random()<.5?-1:1)*(4+level*.25)*s,vy:(Math.random()<.5?-1:1)*(3.5+level*.22)*s,r:.55})}
- pickBackground();updateUI();
+ if(theme==='naples')pickBackground();else bgImage=null;updateUI();
 }
 function landRatio(){let n=0;for(const row of grid)for(const c of row)if(c===LAND)n++;return n/(W*H)}
 function updateUI(){ui.level.textContent=level;ui.lives.textContent=lives;ui.area.textContent=Math.floor(landRatio()*100)+'%';ui.score.textContent=score}
@@ -138,8 +138,13 @@ function drawLandTint(alpha){
 }
 function draw(){
  ctx.fillStyle='#02060c';ctx.fillRect(0,0,canvas.width,canvas.height);
- const hasBg=drawImageClippedToLand();
- if(!hasBg){ctx.fillStyle='#0f708c';for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(grid[y][x]===LAND)ctx.fillRect(x*C,y*C,C,C)}
+ const hasBg=theme==='naples'&&drawImageClippedToLand();
+ if(theme==='classic'){
+  ctx.fillStyle='#0f708c';for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(grid[y][x]===LAND)ctx.fillRect(x*C,y*C,C,C);
+  if(levelComplete){const p=revealProgress();ctx.fillStyle='rgba(24,179,210,'+(.55*(1-p))+')';ctx.fillRect(0,0,canvas.width,canvas.height)}
+ }else if(!hasBg){
+  ctx.fillStyle='#0f708c';for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(grid[y][x]===LAND)ctx.fillRect(x*C,y*C,C,C)
+ }
  if(hasBg){
   let tint=.48;
   if(levelComplete){tint=.48*(1-revealProgress())}
@@ -158,6 +163,7 @@ function draw(){
 function loop(t){const dt=Math.min(.033,(t-last)/1000||0);last=t;if(running&&!paused)update(dt);if(levelComplete)updateCelebration(dt,t);draw();requestAnimationFrame(loop)}
 function start(){const m=MODES[difficulty];lives=m.lives;level=1;score=0;running=true;paused=false;document.getElementById('pauseBtn').textContent='PAUSA';ui.overlay.classList.add('hidden');resetLevel()}
 document.querySelectorAll('.diff').forEach(b=>b.addEventListener('click',()=>{difficulty=b.dataset.difficulty;document.querySelectorAll('.diff').forEach(x=>x.classList.toggle('active',x===b))}));
+document.querySelectorAll('.theme').forEach(b=>b.addEventListener('click',()=>{theme=b.dataset.theme;document.querySelectorAll('.theme').forEach(x=>x.classList.toggle('active',x===b));if(theme==='naples')pickBackground();else bgImage=null}));
 document.getElementById('startBtn').addEventListener('click',start);
 document.getElementById('pauseBtn').addEventListener('click',()=>{if(running){paused=!paused;document.getElementById('pauseBtn').textContent=paused?'RIPRENDI':'PAUSA'}});
 const keys={ArrowUp:[0,-1],w:[0,-1],W:[0,-1],ArrowDown:[0,1],s:[0,1],S:[0,1],ArrowLeft:[-1,0],a:[-1,0],A:[-1,0],ArrowRight:[1,0],d:[1,0],D:[1,0]};

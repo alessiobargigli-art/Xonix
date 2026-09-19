@@ -1,0 +1,1 @@
+# Naples backgrounds\n\nInserire qui le immagini del tema Naples. Aggiornare `backgrounds.json` con i nomi file disponibili.\n
