@@ -150,9 +150,7 @@ function drawLandTint(alpha){
  if(alpha<=0)return;
  ctx.fillStyle='rgba(8,91,130,'+alpha+')';
  if(levelComplete){
-  const p=revealProgress(),edge=canvas.width*p;
-  ctx.fillRect(edge,0,canvas.width-edge,canvas.height);
-  ctx.save();ctx.beginPath();for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(grid[y][x]===LAND)ctx.rect(x*C,y*C,C+.5,C+.5);ctx.clip();ctx.fillStyle='rgba(8,91,130,'+(.48*(1-p))+')';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.restore();return
+  ctx.save();ctx.beginPath();for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(grid[y][x]===LAND)ctx.rect(x*C,y*C,C+.5,C+.5);ctx.clip();ctx.fillStyle='rgba(8,91,130,'+alpha+')';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.restore();return
  }
  for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(grid[y][x]===LAND)ctx.fillRect(x*C,y*C,C+.5,C+.5);
 }
@@ -161,11 +159,10 @@ function draw(){
  const isClassic=themes[theme]?.type==='classic';const hasBg=!isClassic&&drawImageClippedToLand();
  if(isClassic){
   ctx.fillStyle='#0f708c';for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(grid[y][x]===LAND)ctx.fillRect(x*C,y*C,C,C);
-  if(levelComplete){const p=revealProgress();ctx.fillStyle='rgba(24,179,210,'+(.55*(1-p))+')';ctx.fillRect(0,0,canvas.width,canvas.height)}
  }else if(!hasBg){
   ctx.fillStyle='#0f708c';for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(grid[y][x]===LAND)ctx.fillRect(x*C,y*C,C,C)
  }
- if(hasBg&&!levelComplete)drawLandTint(.48);
+ if(hasBg)drawLandTint(.48);
  if(!levelComplete){
   ctx.fillStyle='#f9e45b';for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(grid[y][x]===TRAIL)ctx.fillRect(x*C,y*C,C,C);
   ctx.fillStyle='#eaf6ff';ctx.fillRect(player.x*C+1,player.y*C+1,C-2,C-2);
