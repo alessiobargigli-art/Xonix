@@ -2,9 +2,9 @@
 const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
 const W=96,H=60,C=10,EMPTY=0,LAND=1,TRAIL=2;
 const MODES={
- easy:{lives:5,target:.68,balls:2,ballSpeed:2.5,hunterStep:.075},
- normal:{lives:3,target:.72,balls:3,ballSpeed:3.2,hunterStep:.05},
- hard:{lives:3,target:.78,balls:4,ballSpeed:3.8,hunterStep:.038}
+ easy:{lives:5,target:.68,balls:2,ballSpeed:2.6,hunterStep:.065},
+ normal:{lives:3,target:.72,balls:4,ballSpeed:4.2,hunterStep:.034},
+ hard:{lives:3,target:.78,balls:6,ballSpeed:5.2,hunterStep:.024}
 };
 let difficulty='easy',theme='classic',grid,player,enemies,hunter,dir={x:0,y:0},nextDir={x:0,y:0},inputHeld=false,running=false,paused=false,lives=5,level=1,score=0,last=0,acc=0,hunterAcc=0;
 let bgImage=null,bgPool=[],lastBg=-1,levelComplete=false,completeUntil=0,completeStarted=0,fireworks=[];
