@@ -185,6 +185,11 @@ async function start(){const m=MODES[difficulty];lives=m.lives;level=1;score=0;r
 document.querySelectorAll('.diff').forEach(b=>b.addEventListener('click',()=>{difficulty=b.dataset.difficulty;document.querySelectorAll('.diff').forEach(x=>x.classList.toggle('active',x===b))}));
 
 document.getElementById('startBtn').addEventListener('click',start);
+document.getElementById('refreshBtn').addEventListener('click',async()=>{
+ const regs='serviceWorker'in navigator?await navigator.serviceWorker.getRegistrations():[];
+ await Promise.all(regs.map(r=>r.update().catch(()=>{})));
+ location.reload();
+});
 document.getElementById('pauseBtn').addEventListener('click',()=>{if(paused)hidePause();else showPause()});
 document.getElementById('continueBtn').addEventListener('click',hidePause);
 document.getElementById('menuBtn').addEventListener('click',mainMenu);
