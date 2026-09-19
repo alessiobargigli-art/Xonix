@@ -1,6 +1,6 @@
-const VERSION='0.3.22';
+const VERSION='0.3.23';
 const CACHE='xonix-'+VERSION;
-const CORE=['./','./index.html','./style.css?v='+VERSION,'./game.js?v='+VERSION,'./manifest.webmanifest','./icon.svg'];
+const CORE=['./','./index.html','./style.css?v='+VERSION,'./game.js?v='+VERSION,'./manifest.webmanifest','./icon.svg','./assets/music/hypnotic-loop.mp3'];
 
 self.addEventListener('install',event=>{
  self.skipWaiting();

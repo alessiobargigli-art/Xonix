@@ -128,3 +128,17 @@ img,svg{-webkit-user-drag:none;user-drag:none;pointer-events:none}
  .menu-version{font-size:9px;margin-top:1px}
 }
 @media (prefers-reduced-motion:reduce){.menu-version{animation:none;opacity:1}}
+
+/* Pause menu music controls */
+.audio-controls{display:grid;gap:8px;padding:10px;background:#07111d}
+.volume-row{display:grid;grid-template-columns:auto minmax(90px,1fr) 42px;align-items:center;gap:8px;font-size:11px;font-weight:800;letter-spacing:.08em}
+.volume-row input{width:100%;accent-color:#1d9fd1;touch-action:manipulation}
+.volume-row b{text-align:right;font-size:11px}
+.pause-panel .audio-controls button{min-height:38px;background:#152b40}
+.pause-panel .audio-controls button.active{background:#8b3345}
+@media (orientation:landscape) and (max-height:600px){
+ .pause-panel{gap:6px;padding:10px}
+ .audio-controls{gap:5px;padding:6px}
+ .volume-row{font-size:10px;gap:6px}
+ .pause-panel .audio-controls button{min-height:32px}
+}

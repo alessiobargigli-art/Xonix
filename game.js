@@ -9,6 +9,18 @@ const MODES={
 let difficulty='easy',theme='classic',grid,player,enemies,hunter,dir={x:0,y:0},nextDir={x:0,y:0},inputHeld=false,running=false,paused=false,lives=5,level=1,score=0,last=0,acc=0,hunterAcc=0;
 let bgImage=null,bgPool=[],lastBg=-1,levelComplete=false,completeUntil=0,completeStarted=0,fireworks=[],advancingLevel=false;
 const ui={level:document.getElementById('level'),lives:document.getElementById('lives'),area:document.getElementById('area'),score:document.getElementById('score'),overlay:document.getElementById('overlay'),pauseOverlay:document.getElementById('pauseOverlay')};
+const bgMusic=document.getElementById('bgMusic'),musicVolume=document.getElementById('musicVolume'),musicVolumeValue=document.getElementById('musicVolumeValue'),muteBtn=document.getElementById('muteBtn');
+let musicMuted=localStorage.getItem('xonix.musicMuted')==='1';
+let musicLevel=Math.max(0,Math.min(1,Number(localStorage.getItem('xonix.musicVolume')??.35)));
+function syncMusicUI(){
+ bgMusic.volume=musicLevel;bgMusic.muted=musicMuted;
+ musicVolume.value=Math.round(musicLevel*100);musicVolumeValue.textContent=Math.round(musicLevel*100)+'%';
+ muteBtn.textContent=musicMuted?'RIATTIVA':'MUTE';muteBtn.classList.toggle('active',musicMuted);
+}
+function startMusic(){syncMusicUI();if(bgMusic.paused)bgMusic.play().catch(()=>{})}
+musicVolume.addEventListener('input',()=>{musicLevel=Number(musicVolume.value)/100;localStorage.setItem('xonix.musicVolume',musicLevel);if(musicLevel>0&&musicMuted){musicMuted=false;localStorage.setItem('xonix.musicMuted','0')}syncMusicUI();startMusic()});
+muteBtn.addEventListener('click',()=>{musicMuted=!musicMuted;localStorage.setItem('xonix.musicMuted',musicMuted?'1':'0');syncMusicUI();if(!musicMuted)startMusic()});
+syncMusicUI();
 
 let themes={classic:{id:'classic',label:'CLASSICO',type:'classic'}};
 function loadThemes(){
@@ -190,7 +202,7 @@ function loop(t){const dt=Math.min(.033,(t-last)/1000||0);last=t;if(running&&!pa
 function showPause(){if(!running||levelComplete)return;paused=true;stopPlayer();pressedKeys.clear();ui.pauseOverlay.classList.remove('hidden')}
 function hidePause(){paused=false;ui.pauseOverlay.classList.add('hidden')}
 function mainMenu(){paused=false;running=false;stopPlayer();pressedKeys.clear();ui.pauseOverlay.classList.add('hidden');ui.overlay.classList.remove('hidden');document.getElementById('menuTitle').textContent='XONIX';document.getElementById('menuText').textContent='Conquista il campo, rivela lo sfondo e non farti prendere.';document.getElementById('difficultyBox').style.display='grid';document.getElementById('themeBox').style.display='grid';document.getElementById('startBtn').textContent='GIOCA'}
-async function start(){const m=MODES[difficulty];lives=m.lives;level=1;score=0;running=false;paused=false;advancingLevel=false;ui.pauseOverlay.classList.add('hidden');ui.overlay.classList.add('hidden');if(themes[theme]?.type!=='classic'&&!bgPool.length)await loadThemeBackgrounds(theme);else if(themes[theme]?.type!=='classic'&&!bgImage)await pickBackground();resetLevel();running=true}
+async function start(){startMusic();const m=MODES[difficulty];lives=m.lives;level=1;score=0;running=false;paused=false;advancingLevel=false;ui.pauseOverlay.classList.add('hidden');ui.overlay.classList.add('hidden');if(themes[theme]?.type!=='classic'&&!bgPool.length)await loadThemeBackgrounds(theme);else if(themes[theme]?.type!=='classic'&&!bgImage)await pickBackground();resetLevel();running=true}
 document.querySelectorAll('.diff').forEach(b=>b.addEventListener('click',()=>{difficulty=b.dataset.difficulty;document.querySelectorAll('.diff').forEach(x=>x.classList.toggle('active',x===b))}));
 
 document.getElementById('startBtn').addEventListener('click',start);
