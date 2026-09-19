@@ -8,7 +8,7 @@ const MODES={
 };
 let difficulty='easy',theme='classic',grid,player,enemies,hunter,dir={x:0,y:0},nextDir={x:0,y:0},inputHeld=false,running=false,paused=false,lives=5,level=1,score=0,last=0,acc=0,hunterAcc=0;
 let bgImage=null,bgPool=[],lastBg=-1,levelComplete=false,completeUntil=0,completeStarted=0,fireworks=[];
-const ui={level:document.getElementById('level'),lives:document.getElementById('lives'),area:document.getElementById('area'),score:document.getElementById('score'),overlay:document.getElementById('overlay')};
+const ui={level:document.getElementById('level'),lives:document.getElementById('lives'),area:document.getElementById('area'),score:document.getElementById('score'),overlay:document.getElementById('overlay'),pauseOverlay:document.getElementById('pauseOverlay')};
 
 function discoverBackgrounds(){
  fetch('backgrounds/naples/backgrounds.json',{cache:'no-store'})
@@ -25,9 +25,9 @@ function pickBackground(){
 function resetLevel(){
  levelComplete=false;completeUntil=0;completeStarted=0;fireworks=[];
  grid=Array.from({length:H},()=>Array(W).fill(EMPTY));
- for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(x<3||y<3||x>=W-3||y>=H-3)grid[y][x]=LAND;
- player={x:Math.floor(W/2),y:1,onTrail:false};
- hunter={x:Math.floor(W/2),y:H-2,vx:1,vy:-1};hunterAcc=0;
+ for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(x<2||y<2||x>=W-2||y>=H-2)grid[y][x]=LAND;
+ player={x:Math.floor(W/2),y:0,onTrail:false};
+ hunter={x:Math.floor(W/2),y:H-1,vx:1,vy:-1};hunterAcc=0;
  dir={x:0,y:0};nextDir={x:0,y:0};inputHeld=false;enemies=[];
  const m=MODES[difficulty],count=Math.min(m.balls+Math.floor((level-1)/2),9);
  for(let i=0;i<count;i++){const s=m.ballSpeed;enemies.push({x:15+Math.random()*(W-30),y:12+Math.random()*(H-24),vx:(Math.random()<.5?-1:1)*(4+level*.25)*s,vy:(Math.random()<.5?-1:1)*(3.5+level*.22)*s,r:.55})}
@@ -70,7 +70,7 @@ function updateCelebration(dt,t){
  if(levelComplete&&t>=completeUntil){level++;running=true;resetLevel()}
 }
 function clearTrail(){for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(grid[y][x]===TRAIL)grid[y][x]=EMPTY}
-function respawn(){player={x:Math.floor(W/2),y:1,onTrail:false};hunter={x:Math.floor(W/2),y:H-2,vx:1,vy:-1};dir={x:0,y:0};nextDir={x:0,y:0};inputHeld=false}
+function respawn(){player={x:Math.floor(W/2),y:0,onTrail:false};hunter={x:Math.floor(W/2),y:H-1,vx:1,vy:-1};dir={x:0,y:0};nextDir={x:0,y:0};inputHeld=false}
 function loseLife(){
  clearTrail();lives--;respawn();updateUI();
  if(lives<=0){running=false;ui.overlay.classList.remove('hidden');document.getElementById('menuTitle').textContent='GAME OVER';document.getElementById('menuText').textContent='Punteggio '+score;document.getElementById('difficultyBox').style.display='grid';document.getElementById('startBtn').textContent='RIPROVA'}
@@ -161,11 +161,16 @@ function draw(){
  for(const p of fireworks){ctx.beginPath();ctx.fillStyle='hsla('+p.h+',90%,65%,'+Math.max(0,p.life/p.max)+')';ctx.arc(p.x,p.y,3.2,0,Math.PI*2);ctx.fill()}
 }
 function loop(t){const dt=Math.min(.033,(t-last)/1000||0);last=t;if(running&&!paused)update(dt);if(levelComplete)updateCelebration(dt,t);draw();requestAnimationFrame(loop)}
-function start(){const m=MODES[difficulty];lives=m.lives;level=1;score=0;running=true;paused=false;document.getElementById('pauseBtn').textContent='PAUSA';ui.overlay.classList.add('hidden');resetLevel()}
+function showPause(){if(!running||levelComplete)return;paused=true;stopPlayer();pressedKeys.clear();ui.pauseOverlay.classList.remove('hidden')}
+function hidePause(){paused=false;ui.pauseOverlay.classList.add('hidden')}
+function mainMenu(){paused=false;running=false;stopPlayer();pressedKeys.clear();ui.pauseOverlay.classList.add('hidden');ui.overlay.classList.remove('hidden');document.getElementById('menuTitle').textContent='XONIX';document.getElementById('menuText').textContent='Conquista il campo, rivela lo sfondo e non farti prendere.';document.getElementById('difficultyBox').style.display='grid';document.getElementById('themeBox').style.display='grid';document.getElementById('startBtn').textContent='GIOCA'}
+function start(){const m=MODES[difficulty];lives=m.lives;level=1;score=0;running=true;paused=false;ui.pauseOverlay.classList.add('hidden');ui.overlay.classList.add('hidden');resetLevel()}
 document.querySelectorAll('.diff').forEach(b=>b.addEventListener('click',()=>{difficulty=b.dataset.difficulty;document.querySelectorAll('.diff').forEach(x=>x.classList.toggle('active',x===b))}));
 document.querySelectorAll('.theme').forEach(b=>b.addEventListener('click',()=>{theme=b.dataset.theme;document.querySelectorAll('.theme').forEach(x=>x.classList.toggle('active',x===b));if(theme==='naples')pickBackground();else bgImage=null}));
 document.getElementById('startBtn').addEventListener('click',start);
-document.getElementById('pauseBtn').addEventListener('click',()=>{if(running){paused=!paused;document.getElementById('pauseBtn').textContent=paused?'RIPRENDI':'PAUSA'}});
+document.getElementById('pauseBtn').addEventListener('click',showPause);
+document.getElementById('continueBtn').addEventListener('click',hidePause);
+document.getElementById('menuBtn').addEventListener('click',mainMenu);
 const keys={ArrowUp:[0,-1],w:[0,-1],W:[0,-1],ArrowDown:[0,1],s:[0,1],S:[0,1],ArrowLeft:[-1,0],a:[-1,0],A:[-1,0],ArrowRight:[1,0],d:[1,0],D:[1,0]};
 const pressedKeys=new Map();let keyOrder=0;
 function syncKeyboardDirection(){
@@ -175,7 +180,7 @@ function syncKeyboardDirection(){
 }
 addEventListener('keydown',e=>{
  if(keys[e.key]){e.preventDefault();if(!pressedKeys.has(e.key))pressedKeys.set(e.key,++keyOrder);syncKeyboardDirection()}
- if(e.key===' '&&running&&!e.repeat){e.preventDefault();paused=!paused}
+ if(e.key===' '&&running&&!e.repeat){e.preventDefault();if(paused)hidePause();else showPause()}
 });
 addEventListener('keyup',e=>{if(keys[e.key]){e.preventDefault();pressedKeys.delete(e.key);syncKeyboardDirection()}});
 addEventListener('blur',()=>{pressedKeys.clear();stopPlayer()});

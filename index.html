@@ -4,6 +4,10 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
   <meta name="theme-color" content="#08111f" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Xonix" />
+  <link rel="apple-touch-icon" href="icon.svg" />
   <title>Xonix</title>
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="stylesheet" href="style.css" />
@@ -11,7 +15,7 @@
 <body>
   <main class="app">
     <header>
-      <div><strong>XONIX</strong><span id="version"> v0.3.0</span></div>
+      <div><strong>XONIX</strong><span id="version"> v0.3.1</span></div>
       <div class="stats">
         <span>Livello <b id="level">1</b></span>
         <span>Vite <b id="lives">3</b></span>
@@ -42,6 +46,9 @@
           </div>
           <button id="startBtn" class="start">GIOCA</button>
         </div>
+      </div>
+      <div id="pauseOverlay" class="pause-overlay hidden">
+        <div class="pause-panel"><h2>PAUSA</h2><button id="continueBtn">CONTINUA</button><button id="menuBtn">MENÙ PRINCIPALE</button></div>
       </div>
     </section>
     <section class="controls">
