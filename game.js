@@ -2,9 +2,9 @@
 const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
 const W=96,H=60,C=10,EMPTY=0,LAND=1,TRAIL=2;
 const MODES={
- easy:{lives:5,target:.68,balls:2,ballSpeed:2.6,hunterStep:.065},
- normal:{lives:3,target:.72,balls:4,ballSpeed:4.2,hunterStep:.034},
- hard:{lives:3,target:.78,balls:6,ballSpeed:5.2,hunterStep:.024}
+ easy:{lives:5,target:.75,balls:2,ballSpeed:2.6,hunterStep:.065},
+ normal:{lives:3,target:.75,balls:4,ballSpeed:4.2,hunterStep:.034},
+ hard:{lives:3,target:.75,balls:6,ballSpeed:5.2,hunterStep:.024}
 };
 let difficulty='easy',theme='classic',grid,player,enemies,hunter,dir={x:0,y:0},nextDir={x:0,y:0},inputHeld=false,running=false,paused=false,lives=5,level=1,score=0,last=0,acc=0,hunterAcc=0;
 let bgImage=null,bgPool=[],lastBg=-1,levelComplete=false,completeUntil=0,completeStarted=0,fireworks=[];
@@ -41,8 +41,9 @@ function resetLevel(){
  player={x:Math.floor(W/2),y:0,onTrail:false};
  hunter={x:Math.floor(W/2),y:H-1,vx:1,vy:-1};hunterAcc=0;
  dir={x:0,y:0};nextDir={x:0,y:0};inputHeld=false;enemies=[];
- const m=MODES[difficulty],count=Math.min(m.balls+Math.floor((level-1)/2),9);
- for(let i=0;i<count;i++){const s=m.ballSpeed;enemies.push({x:15+Math.random()*(W-30),y:12+Math.random()*(H-24),vx:(Math.random()<.5?-1:1)*(4+level*.25)*s,vy:(Math.random()<.5?-1:1)*(3.5+level*.22)*s,r:.55})}
+ const m=MODES[difficulty],wins=level-1,extraBalls=Math.ceil(wins/2),speedUps=Math.floor(wins/2);
+ const count=Math.min(m.balls+extraBalls,12),s=m.ballSpeed*Math.pow(1.12,speedUps);
+ for(let i=0;i<count;i++)enemies.push({x:15+Math.random()*(W-30),y:12+Math.random()*(H-24),vx:(Math.random()<.5?-1:1)*4.25*s,vy:(Math.random()<.5?-1:1)*3.72*s,r:.55})
  if(themes[theme]?.type==='classic')bgImage=null;updateUI();
 }
 function landRatio(){let n=0;for(const row of grid)for(const c of row)if(c===LAND)n++;return n/(W*H)}
@@ -123,7 +124,8 @@ function moveHunter(){
 }
 function update(dt){
  acc+=dt;updateEnemies(dt);hunterAcc+=dt;
- if(hunterAcc>=MODES[difficulty].hunterStep){hunterAcc=0;moveHunter()}
+ const speedUps=Math.floor((level-1)/2),hunterStep=MODES[difficulty].hunterStep/Math.pow(1.12,speedUps);
+ if(hunterAcc>=hunterStep){hunterAcc=0;moveHunter()}
  while(acc>.045){stepPlayer();acc-=.045}
 }
 function imageRect(){
