@@ -7,7 +7,7 @@ const MODES={
  hard:{lives:3,target:.78,balls:4,ballSpeed:2.0,hunterStep:.09}
 };
 let difficulty='easy',grid,player,enemies,hunter,dir={x:0,y:0},nextDir={x:0,y:0},inputHeld=false,running=false,paused=false,lives=5,level=1,score=0,last=0,acc=0,hunterAcc=0;
-let bgImage=null,bgPool=[],lastBg=-1,levelComplete=false,completeUntil=0,fireworks=[];
+let bgImage=null,bgPool=[],lastBg=-1,levelComplete=false,completeUntil=0,completeStarted=0,fireworks=[];
 const ui={level:document.getElementById('level'),lives:document.getElementById('lives'),area:document.getElementById('area'),score:document.getElementById('score'),overlay:document.getElementById('overlay')};
 
 function discoverBackgrounds(){
@@ -25,7 +25,7 @@ function pickBackground(){
  lastBg=i;const im=new Image();im.onload=()=>bgImage=im;im.src=bgPool[i];
 }
 function resetLevel(){
- levelComplete=false;completeUntil=0;fireworks=[];
+ levelComplete=false;completeUntil=0;completeStarted=0;fireworks=[];
  grid=Array.from({length:H},()=>Array(W).fill(EMPTY));
  for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(x<3||y<3||x>=W-3||y>=H-3)grid[y][x]=LAND;
  player={x:Math.floor(W/2),y:H-2,onTrail:false};
@@ -59,7 +59,7 @@ function capture(){
  updateUI();
 }
 function beginLevelComplete(){
- levelComplete=true;running=false;stopPlayer();completeUntil=performance.now()+3200;
+ levelComplete=true;running=false;stopPlayer();completeStarted=performance.now();completeUntil=completeStarted+3600;
  for(let i=0;i<7;i++)setTimeout(()=>spawnFirework(),i*360);
 }
 function spawnFirework(){
@@ -108,21 +108,31 @@ function update(dt){
  if(hunterAcc>=MODES[difficulty].hunterStep){hunterAcc=0;moveHunter()}
  while(acc>.045){stepPlayer();acc-=.045}
 }
-function paintImage(){
- if(!bgImage)return false;
+function imageRect(){
+ if(!bgImage)return null;
  const ir=bgImage.width/bgImage.height,cr=canvas.width/canvas.height;let dw,dh,dx,dy;
  if(ir>cr){dh=canvas.height;dw=dh*ir;dx=(canvas.width-dw)/2;dy=0}else{dw=canvas.width;dh=dw/ir;dx=0;dy=(canvas.height-dh)/2}
- ctx.drawImage(bgImage,dx,dy,dw,dh);return true;
+ return {dx,dy,dw,dh};
+}
+function drawImageClippedToLand(){
+ if(!bgImage)return false;
+ const r=imageRect();ctx.save();ctx.beginPath();
+ for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(grid[y][x]===LAND)ctx.rect(x*C,y*C,C+.5,C+.5);
+ ctx.clip();ctx.drawImage(bgImage,r.dx,r.dy,r.dw,r.dh);ctx.restore();return true;
+}
+function drawLandTint(alpha){
+ if(alpha<=0)return;
+ ctx.fillStyle='rgba(8,91,130,'+alpha+')';
+ for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(grid[y][x]===LAND)ctx.fillRect(x*C,y*C,C+.5,C+.5);
 }
 function draw(){
  ctx.fillStyle='#02060c';ctx.fillRect(0,0,canvas.width,canvas.height);
- const hasBg=paintImage();
- if(hasBg&&!levelComplete){
-  ctx.fillStyle='rgba(8,60,82,.68)';
-  for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(grid[y][x]===EMPTY)ctx.fillRect(x*C,y*C,C+.5,C+.5);
- }else if(!hasBg){
-  ctx.fillStyle='#0f708c';for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(grid[y][x]===LAND)ctx.fillRect(x*C,y*C,C,C);
-  if(!levelComplete){ctx.fillStyle='rgba(3,12,22,.88)';for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(grid[y][x]===EMPTY)ctx.fillRect(x*C,y*C,C,C)}
+ const hasBg=drawImageClippedToLand();
+ if(!hasBg){ctx.fillStyle='#0f708c';for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(grid[y][x]===LAND)ctx.fillRect(x*C,y*C,C,C)}
+ if(hasBg){
+  let tint=.48;
+  if(levelComplete){const p=Math.min(1,(performance.now()-completeStarted)/1100);tint=.48*(1-p)}
+  drawLandTint(tint);
  }
  if(!levelComplete){
   ctx.fillStyle='#f9e45b';for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(grid[y][x]===TRAIL)ctx.fillRect(x*C,y*C,C,C);
