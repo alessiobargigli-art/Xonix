@@ -6,7 +6,7 @@ const MODES={
  normal:{lives:3,target:.72,balls:3,ballSpeed:1,hunterStep:.14},
  hard:{lives:3,target:.78,balls:4,ballSpeed:1.28,hunterStep:.09}
 };
-let difficulty='easy',grid,player,enemies,hunter,dir={x:0,y:0},nextDir={x:0,y:0},running=false,paused=false,lives=5,level=1,score=0,last=0,acc=0,hunterAcc=0;
+let difficulty='easy',grid,player,enemies,hunter,dir={x:0,y:0},nextDir={x:0,y:0},inputHeld=false,running=false,paused=false,lives=5,level=1,score=0,last=0,acc=0,hunterAcc=0;
 let bgImage=null,bgPool=[],lastBg=-1;
 const ui={level:document.getElementById('level'),lives:document.getElementById('lives'),area:document.getElementById('area'),score:document.getElementById('score'),overlay:document.getElementById('overlay')};
 
@@ -29,20 +29,20 @@ function resetLevel(){
  for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(x<3||y<3||x>=W-3||y>=H-3)grid[y][x]=LAND;
  player={x:Math.floor(W/2),y:H-2,onTrail:false};
  hunter={x:4,y:3,vx:1,vy:1};hunterAcc=0;
- dir={x:0,y:0};nextDir={x:0,y:0};enemies=[];
+ dir={x:0,y:0};nextDir={x:0,y:0};inputHeld=false;enemies=[];
  const m=MODES[difficulty],count=Math.min(m.balls+Math.floor((level-1)/2),9);
  for(let i=0;i<count;i++){const s=m.ballSpeed;enemies.push({x:15+Math.random()*(W-30),y:12+Math.random()*(H-24),vx:(Math.random()<.5?-1:1)*(4+level*.25)*s,vy:(Math.random()<.5?-1:1)*(3.5+level*.22)*s,r:1.1})}
  pickBackground();updateUI();
 }
 function landRatio(){let n=0;for(const row of grid)for(const c of row)if(c===LAND)n++;return n/(W*H)}
 function updateUI(){ui.level.textContent=level;ui.lives.textContent=lives;ui.area.textContent=Math.floor(landRatio()*100)+'%';ui.score.textContent=score}
-function setDir(x,y){nextDir={x,y}}
+function setDir(x,y){nextDir={x,y};dir={x,y}}
+function stopPlayer(){inputHeld=false;dir={x:0,y:0};nextDir={x:0,y:0}}
 function stepPlayer(){
- if(nextDir.x||nextDir.y)if(!(dir.x===-nextDir.x&&dir.y===-nextDir.y))dir=nextDir;
- if(!dir.x&&!dir.y)return;
+ if(!inputHeld||(!dir.x&&!dir.y))return;
  const nx=player.x+dir.x,ny=player.y+dir.y;if(nx<0||ny<0||nx>=W||ny>=H)return;
  const current=grid[player.y][player.x],dest=grid[ny][nx];
- if(dest===TRAIL){loseLife();return}
+ if(dest===TRAIL)return;
  if(current===LAND&&dest===EMPTY)player.onTrail=true;
  if(player.onTrail&&dest===EMPTY)grid[ny][nx]=TRAIL;
  player.x=nx;player.y=ny;
@@ -58,7 +58,7 @@ function capture(){
  updateUI();
 }
 function clearTrail(){for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(grid[y][x]===TRAIL)grid[y][x]=EMPTY}
-function respawn(){player={x:Math.floor(W/2),y:H-2,onTrail:false};hunter={x:4,y:3,vx:1,vy:1};dir={x:0,y:0};nextDir={x:0,y:0}}
+function respawn(){player={x:Math.floor(W/2),y:H-2,onTrail:false};hunter={x:4,y:3,vx:1,vy:1};dir={x:0,y:0};nextDir={x:0,y:0};inputHeld=false}
 function loseLife(){
  clearTrail();lives--;respawn();updateUI();
  if(lives<=0){running=false;ui.overlay.classList.remove('hidden');document.getElementById('menuTitle').textContent='GAME OVER';document.getElementById('menuText').textContent='Punteggio '+score;document.getElementById('difficultyBox').style.display='grid';document.getElementById('startBtn').textContent='RIPROVA'}
@@ -75,11 +75,19 @@ function updateEnemies(dt){
 }
 function moveHunter(){
  if(!hunter)return;
- let nx=hunter.x+hunter.vx,ny=hunter.y+hunter.vy;
- if(ny<=0||ny>=H-1){hunter.vy*=-1;ny=hunter.y+hunter.vy}
- if(nx<=0||nx>=W-1){hunter.vx*=-1;nx=hunter.x+hunter.vx}
- hunter.x=nx;hunter.y=ny;
- if(Math.abs(hunter.x-player.x)<1&&Math.abs(hunter.y-player.y)<1)loseLife();
+ const isLand=(x,y)=>x>=0&&y>=0&&x<W&&y<H&&grid[y][x]===LAND;
+ let vx=hunter.vx,vy=hunter.vy;
+ if(!isLand(hunter.x,hunter.y+vy))vy*=-1;
+ if(!isLand(hunter.x+vx,hunter.y))vx*=-1;
+ let nx=hunter.x+vx,ny=hunter.y+vy;
+ if(!isLand(nx,ny)){
+  if(isLand(hunter.x-vx,ny)){vx*=-1;nx=hunter.x+vx}
+  else if(isLand(nx,hunter.y-vy)){vy*=-1;ny=hunter.y+vy}
+  else {vx*=-1;vy*=-1;nx=hunter.x+vx;ny=hunter.y+vy}
+ }
+ hunter.vx=vx;hunter.vy=vy;
+ if(isLand(nx,ny)){hunter.x=nx;hunter.y=ny}
+ if(hunter.x===player.x&&hunter.y===player.y)loseLife();
 }
 function update(dt){
  acc+=dt;updateEnemies(dt);hunterAcc+=dt;
@@ -111,9 +119,21 @@ document.querySelectorAll('.diff').forEach(b=>b.addEventListener('click',()=>{di
 document.getElementById('startBtn').addEventListener('click',start);
 document.getElementById('pauseBtn').addEventListener('click',()=>{if(running){paused=!paused;document.getElementById('pauseBtn').textContent=paused?'RIPRENDI':'PAUSA'}});
 const keys={ArrowUp:[0,-1],w:[0,-1],W:[0,-1],ArrowDown:[0,1],s:[0,1],S:[0,1],ArrowLeft:[-1,0],a:[-1,0],A:[-1,0],ArrowRight:[1,0],d:[1,0],D:[1,0]};
-addEventListener('keydown',e=>{if(keys[e.key]){e.preventDefault();setDir(...keys[e.key])}if(e.key===' '&&running){e.preventDefault();paused=!paused}});
-document.querySelectorAll('[data-dir]').forEach(b=>{const m={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};const go=e=>{e.preventDefault();setDir(...m[b.dataset.dir])};b.addEventListener('pointerdown',go)});
-let sx=0,sy=0;canvas.addEventListener('pointerdown',e=>{sx=e.clientX;sy=e.clientY});canvas.addEventListener('pointerup',e=>{const dx=e.clientX-sx,dy=e.clientY-sy;if(Math.abs(dx)+Math.abs(dy)>20){if(Math.abs(dx)>Math.abs(dy))setDir(Math.sign(dx),0);else setDir(0,Math.sign(dy))}});
+addEventListener('keydown',e=>{if(keys[e.key]){e.preventDefault();inputHeld=true;setDir(...keys[e.key])}if(e.key===' '&&running){e.preventDefault();paused=!paused}});
+addEventListener('keyup',e=>{if(keys[e.key]){e.preventDefault();stopPlayer()}});
+addEventListener('blur',stopPlayer);
+document.querySelectorAll('[data-dir]').forEach(b=>{
+ const m={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
+ b.addEventListener('pointerdown',e=>{e.preventDefault();b.setPointerCapture?.(e.pointerId);inputHeld=true;setDir(...m[b.dataset.dir])});
+ b.addEventListener('pointerup',e=>{e.preventDefault();stopPlayer()});
+ b.addEventListener('pointercancel',stopPlayer);
+ b.addEventListener('lostpointercapture',stopPlayer);
+});
+let sx=0,sy=0;
+canvas.addEventListener('pointerdown',e=>{sx=e.clientX;sy=e.clientY;canvas.setPointerCapture?.(e.pointerId)});
+canvas.addEventListener('pointermove',e=>{if(!canvas.hasPointerCapture?.(e.pointerId))return;const dx=e.clientX-sx,dy=e.clientY-sy;if(Math.abs(dx)+Math.abs(dy)>16){inputHeld=true;if(Math.abs(dx)>Math.abs(dy))setDir(Math.sign(dx),0);else setDir(0,Math.sign(dy));sx=e.clientX;sy=e.clientY}});
+canvas.addEventListener('pointerup',e=>{e.preventDefault();stopPlayer()});
+canvas.addEventListener('pointercancel',stopPlayer);
 discoverBackgrounds();resetLevel();requestAnimationFrame(loop);
 if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
 })();
