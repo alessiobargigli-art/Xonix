@@ -1,4 +1,12 @@
 (() => {
+function setVhVar(){
+ const h=(window.visualViewport&&window.visualViewport.height)||window.innerHeight;
+ document.documentElement.style.setProperty('--vh',(h*0.01)+'px');
+}
+setVhVar();
+addEventListener('resize',setVhVar);
+addEventListener('orientationchange',()=>setTimeout(setVhVar,60));
+if(window.visualViewport)window.visualViewport.addEventListener('resize',setVhVar);
 const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
 const W=96,H=60,C=10,EMPTY=0,LAND=1,TRAIL=2;
 const MODES={
