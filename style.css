@@ -281,3 +281,8 @@ img,svg{-webkit-user-drag:none;user-drag:none;pointer-events:none}
   bottom:max(6px,env(safe-area-inset-bottom));
  }
 }
+
+/* v0.3.29: only the main menu (or game-over screen) should be visible while it's open -
+   no HUD title/stats and no touch controls behind it */
+.app:has(#overlay:not(.hidden)) header,
+.app:has(#overlay:not(.hidden)) .controls{display:none}
