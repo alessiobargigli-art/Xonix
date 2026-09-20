@@ -18,5 +18,12 @@
     "type": "images",
     "path": "ninjago",
     "music": "assets/music/hypnotic-loop.mp3"
+  },
+  {
+    "id": "bts",
+    "label": "BTS",
+    "type": "images",
+    "path": "bts",
+    "music": "assets/music/hypnotic-loop.mp3"
   }
 ]
