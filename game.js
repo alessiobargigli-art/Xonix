@@ -15,7 +15,7 @@ const MODES={
  hard:{lives:3,target:.75,balls:6,ballSpeed:5.2,hunterStep:.024}
 };
 let difficulty='easy',theme='classic',grid,player,enemies,hunter,dir={x:0,y:0},nextDir={x:0,y:0},inputHeld=false,running=false,paused=false,lives=5,level=1,score=0,last=0,acc=0,hunterAcc=0,timeLeft=120;
-let bgImage=null,bgPool=[],lastBg=-1,levelComplete=false,completeUntil=0,completeStarted=0,fireworks=[],advancingLevel=false;
+let bgImage=null,bgPool=[],lastBg=-1,levelComplete=false,completeUntil=0,completeStarted=0,fireworks=[],advancingLevel=false,lastEnemyType=null,currentEnemyType=null;
 const ui={level:document.getElementById('level'),lives:document.getElementById('lives'),area:document.getElementById('area'),time:document.getElementById('time'),score:document.getElementById('score'),overlay:document.getElementById('overlay'),pauseOverlay:document.getElementById('pauseOverlay')};
 const bgMusic=document.getElementById('bgMusic'),musicVolume=document.getElementById('musicVolume'),musicVolumeValue=document.getElementById('musicVolumeValue'),muteBtn=document.getElementById('muteBtn');
 let musicMuted=localStorage.getItem('xonix.musicMuted')==='1';
@@ -111,8 +111,14 @@ function pickBackground(){
  let i=Math.floor(Math.random()*bgPool.length);if(bgPool.length>1&&i===lastBg)i=(i+1)%bgPool.length;
  lastBg=i;return new Promise(resolve=>{const im=new Image();im.onload=()=>{bgImage=im;resolve()};im.onerror=()=>{bgImage=null;resolve()};im.src=bgPool[i]});
 }
+function pickEnemyType(){
+ const lib=window.XONIX_ENEMIES||[];
+ if(!lib.length)return {id:'basic',size:1,movement:'bounce',speedMultiplier:1,specials:[],draw:null};
+ let pool=lib.filter(x=>x.id!==lastEnemyType);if(!pool.length)pool=lib;
+ const type=pool[Math.floor(Math.random()*pool.length)];lastEnemyType=type.id;return type;
+}
 function resetLevel(){
- levelComplete=false;completeUntil=0;completeStarted=0;fireworks=[];timeLeft=120;
+ levelComplete=false;completeUntil=0;completeStarted=0;fireworks=[];timeLeft=120;currentEnemyType=pickEnemyType();
  grid=Array.from({length:H},()=>Array(W).fill(EMPTY));
  for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(x<2||y<2||x>=W-2||y>=H-2)grid[y][x]=LAND;
  player={x:Math.floor(W/2),y:0,onTrail:false};
@@ -120,7 +126,7 @@ function resetLevel(){
  dir={x:0,y:0};nextDir={x:0,y:0};inputHeld=false;enemies=[];
  const m=MODES[difficulty],wins=level-1,extraBalls=Math.ceil(wins/2),speedUps=Math.floor(wins/2);
  const count=Math.min(m.balls+extraBalls,12),s=m.ballSpeed*Math.pow(1.12,speedUps);
- for(let i=0;i<count;i++)enemies.push({x:15+Math.random()*(W-30),y:12+Math.random()*(H-24),vx:(Math.random()<.5?-1:1)*4.25*s,vy:(Math.random()<.5?-1:1)*3.72*s,r:.55})
+ for(let i=0;i<count;i++){const sm=currentEnemyType.speedMultiplier||1,r=.55*(currentEnemyType.size||1);enemies.push({x:15+Math.random()*(W-30),y:12+Math.random()*(H-24),vx:(Math.random()<.5?-1:1)*4.25*s*sm,vy:(Math.random()<.5?-1:1)*3.72*s*sm,r,type:currentEnemyType})}
  if(themes[theme]?.type==='classic')bgImage=null;updateUI();
 }
 const INITIAL_LAND=W*H-(W-4)*(H-4),CAPTURABLE_CELLS=W*H-INITIAL_LAND;
@@ -263,7 +269,7 @@ function draw(){
   ctx.fillStyle='#35c7ff';ctx.beginPath();ctx.arc(px,py,C*.16,0,Math.PI*2);ctx.fill();
   ctx.restore();
   if(hunter){ctx.fillStyle='#ff9f1c';ctx.fillRect(hunter.x*C,hunter.y*C,C,C);ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.strokeRect(hunter.x*C+1,hunter.y*C+1,C-2,C-2)}
-  for(const e of enemies){ctx.beginPath();ctx.fillStyle='#ff5470';ctx.arc(e.x*C,e.y*C,e.r*C,0,Math.PI*2);ctx.fill()}
+  for(const e of enemies){if(e.type?.draw)e.type.draw(ctx,e.x*C,e.y*C,e.r*C);else{ctx.beginPath();ctx.fillStyle='#ff5470';ctx.arc(e.x*C,e.y*C,e.r*C,0,Math.PI*2);ctx.fill()}}
  }else{
   drawCompletionImageLayer();
   ctx.save();ctx.textAlign='center';ctx.font='bold 42px system-ui';ctx.fillStyle='rgba(255,255,255,.96)';ctx.strokeStyle='rgba(0,0,0,.65)';ctx.lineWidth=6;ctx.strokeText('LIVELLO COMPLETATO!',canvas.width/2,62);ctx.fillText('LIVELLO COMPLETATO!',canvas.width/2,62);ctx.restore();
