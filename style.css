@@ -238,3 +238,21 @@ img,svg{-webkit-user-drag:none;user-drag:none;pointer-events:none}
    no HUD title/stats and no touch controls behind it */
 .app:has(#overlay:not(.hidden)) header,
 .app:has(#overlay:not(.hidden)) .controls{display:none}
+
+/* v0.3.31: optional theme access groups */
+.access-panel{margin:8px auto 0;width:min(100%,430px);padding:8px;background:rgba(7,17,29,.9)}
+.access-panel.hidden{display:none}
+.access-row{display:flex;gap:6px}
+.access-row input{min-width:0;flex:1;border:1px solid #29455d;background:#07111d;color:#eaf6ff;padding:9px 10px;font:700 12px system-ui;text-transform:uppercase;outline:none}
+.access-row input.invalid{border-color:#ff5470}
+.access-row button,.access-status button{border:0;background:#1d9fd1;color:#fff;font-weight:800;padding:8px 10px}
+.access-status{display:flex;justify-content:center;align-items:center;gap:6px;flex-wrap:wrap;margin-top:7px;font-size:10px;letter-spacing:.08em}
+.access-status span,.access-status button{font-size:10px}
+.access-status span{padding:6px 8px;background:#152b40}
+.access-status button{background:#8b3345;cursor:pointer}
+@media (orientation:landscape) and (max-height:430px) and ((max-width:899px) or (pointer:coarse)){
+ .access-panel{margin-top:3px;padding:4px}
+ .access-row input{padding:5px 7px;font-size:10px}
+ .access-row button{padding:5px 8px;font-size:10px}
+ .access-status{margin-top:3px}
+}

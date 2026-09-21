@@ -50,6 +50,41 @@ musicVolume.addEventListener('input',()=>{musicLevel=Number(musicVolume.value)/1
 muteBtn.addEventListener('click',()=>{musicMuted=!musicMuted;localStorage.setItem('xonix.musicMuted',musicMuted?'1':'0');syncMusicUI();if(!musicMuted)startMusic()});
 syncMusicUI();
 
+const ACCESS_CODES={BTSEXY:'btsexy',FRIENDS:'friends'};
+const ACCESS_KEY='xonix.accessGroups';
+function accessGroups(){
+ const groups=new Set(['public']);
+ try{for(const g of JSON.parse(localStorage.getItem(ACCESS_KEY)||'[]'))if(g==='btsexy'||g==='friends')groups.add(g)}catch{}
+ return groups;
+}
+function saveAccessGroups(groups){localStorage.setItem(ACCESS_KEY,JSON.stringify([...groups].filter(g=>g!=='public')))}
+function themeVisible(t){
+ const visibility=Array.isArray(t.visibility)&&t.visibility.length?t.visibility:['public'];
+ const groups=accessGroups();
+ return visibility.some(g=>groups.has(g));
+}
+function accessLabel(){return [...accessGroups()].map(g=>g.toUpperCase()).join(' · ')}
+function applyAccessCode(raw){
+ const code=(raw||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
+ const group=ACCESS_CODES[code];
+ if(!group)return false;
+ const groups=accessGroups();groups.add(group);saveAccessGroups(groups);syncAccessUI();renderThemeButtons();
+ return true;
+}
+function removeAccessGroup(group){
+ if(group==='public')return;
+ const groups=accessGroups();groups.delete(group);saveAccessGroups(groups);
+ if(!themeVisible(themes[theme]))selectTheme('classic');else renderThemeButtons();
+ syncAccessUI();
+}
+function consumeInvite(){
+ const url=new URL(location.href),invite=url.searchParams.get('invite');
+ if(!invite)return;
+ applyAccessCode(invite);
+ url.searchParams.delete('invite');
+ history.replaceState(null,'',url.pathname+(url.searchParams.toString()?'?'+url.searchParams:'')+url.hash);
+}
+
 let themes={classic:{id:'classic',label:'CLASSICO',type:'classic'}};
 function loadThemes(){
  return fetch('backgrounds/themes.json',{cache:'no-store'}).then(r=>r.ok?r.json():[]).then(list=>{
@@ -59,7 +94,9 @@ function loadThemes(){
 }
 function renderThemeButtons(){
  const box=document.getElementById('themeButtons');box.innerHTML='';
- Object.values(themes).forEach((t,i)=>{const b=document.createElement('button');b.className='theme'+(t.id===theme?' active':'');b.dataset.theme=t.id;b.textContent=t.label||t.id.toUpperCase();b.addEventListener('click',()=>selectTheme(t.id));box.appendChild(b)});
+ const visible=Object.values(themes).filter(themeVisible);
+ if(!visible.some(t=>t.id===theme))theme='classic';
+ visible.forEach(t=>{const b=document.createElement('button');b.className='theme'+(t.id===theme?' active':'');b.dataset.theme=t.id;b.textContent=t.label||t.id.toUpperCase();b.addEventListener('click',()=>selectTheme(t.id));box.appendChild(b)});
 }
 function selectTheme(id){
  theme=id;document.querySelectorAll('.theme').forEach(x=>x.classList.toggle('active',x.dataset.theme===id));applyThemeMusic(!bgMusic.paused);return loadThemeBackgrounds(id);
@@ -267,6 +304,24 @@ canvas.addEventListener('pointerdown',e=>{sx=e.clientX;sy=e.clientY;canvas.setPo
 canvas.addEventListener('pointermove',e=>{if(!canvas.hasPointerCapture?.(e.pointerId))return;const dx=e.clientX-sx,dy=e.clientY-sy;if(Math.abs(dx)+Math.abs(dy)>16){inputHeld=true;if(Math.abs(dx)>Math.abs(dy))setDir(Math.sign(dx),0);else setDir(0,Math.sign(dy));sx=e.clientX;sy=e.clientY}});
 canvas.addEventListener('pointerup',e=>{e.preventDefault();stopPlayer()});
 canvas.addEventListener('pointercancel',stopPlayer);
+const accessBtn=document.getElementById('accessBtn'),accessPanel=document.getElementById('accessPanel'),accessCode=document.getElementById('accessCode'),applyAccessBtn=document.getElementById('applyAccessBtn');
+accessBtn.addEventListener('click',()=>{accessPanel.classList.toggle('hidden');syncAccessUI();if(!accessPanel.classList.contains('hidden'))accessCode.focus()});
+function submitAccess(){
+ if(!applyAccessCode(accessCode.value)){accessCode.classList.add('invalid');setTimeout(()=>accessCode.classList.remove('invalid'),700);return}
+ accessCode.value='';
+}
+applyAccessBtn.addEventListener('click',submitAccess);
+accessCode.addEventListener('keydown',e=>{if(e.key==='Enter')submitAccess()});
+document.getElementById('accessStatus').addEventListener('click',e=>{
+ const group=e.target.dataset?.remove;if(group)removeAccessGroup(group);
+});
+function syncAccessUI(){
+ const status=document.getElementById('accessStatus');if(!status)return;
+ const groups=[...accessGroups()];
+ status.innerHTML=groups.map(g=>g==='public'?'<span>PUBLIC</span>':'<button type="button" data-remove="'+g+'" title="Disattiva '+g+'">'+g.toUpperCase()+' ×</button>').join('');
+}
+consumeInvite();
+syncAccessUI();
 loadThemes();resetLevel();requestAnimationFrame(loop);
 if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
 })();

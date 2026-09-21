@@ -3,27 +3,39 @@
     "id": "classic",
     "label": "CLASSICO",
     "type": "classic",
-    "music": "assets/music/hypnotic-loop.mp3"
+    "music": "assets/music/hypnotic-loop.mp3",
+    "visibility": [
+      "public"
+    ]
   },
   {
     "id": "naples",
     "label": "NAPLES",
     "type": "images",
     "path": "naples",
-    "music": "assets/music/hypnotic-loop.mp3"
+    "music": "assets/music/hypnotic-loop.mp3",
+    "visibility": [
+      "public"
+    ]
   },
   {
     "id": "ninjago",
     "label": "NINJAGO",
     "type": "images",
     "path": "ninjago",
-    "music": "assets/music/hypnotic-loop.mp3"
+    "music": "assets/music/hypnotic-loop.mp3",
+    "visibility": [
+      "public"
+    ]
   },
   {
     "id": "bts",
     "label": "BTS",
     "type": "images",
     "path": "bts",
-    "music": "assets/music/swim8bit.mp3"
+    "music": "assets/music/swim8bit.mp3",
+    "visibility": [
+      "btsexy"
+    ]
   }
 ]
