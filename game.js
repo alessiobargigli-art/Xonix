@@ -262,11 +262,9 @@ function draw(){
  if(!levelComplete){
   ctx.fillStyle='#f9e45b';for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(grid[y][x]===TRAIL)ctx.fillRect(x*C,y*C,C,C);
   ctx.save();
-  const px=player.x*C+C/2,py=player.y*C+C/2;
-  ctx.shadowColor='#59e6ff';ctx.shadowBlur=12;
-  ctx.fillStyle='#eaffff';ctx.beginPath();ctx.arc(px,py,C*.42,0,Math.PI*2);ctx.fill();
-  ctx.shadowBlur=0;ctx.strokeStyle='#35c7ff';ctx.lineWidth=2;ctx.stroke();
-  ctx.fillStyle='#35c7ff';ctx.beginPath();ctx.arc(px,py,C*.16,0,Math.PI*2);ctx.fill();
+  const px=player.x*C+C/2,py=player.y*C+C/2,ps=window.XONIX_PLAYER_SPRITE;
+  if(ps&&ps.complete&&ps.naturalWidth){ctx.imageSmoothingEnabled=false;const size=C*2.2;ctx.drawImage(ps,px-size/2,py-size/2,size,size)}
+  else{ctx.shadowColor='#59e6ff';ctx.shadowBlur=12;ctx.fillStyle='#eaffff';ctx.beginPath();ctx.arc(px,py,C*.42,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.strokeStyle='#35c7ff';ctx.lineWidth=2;ctx.stroke();ctx.fillStyle='#35c7ff';ctx.beginPath();ctx.arc(px,py,C*.16,0,Math.PI*2);ctx.fill()}
   ctx.restore();
   if(hunter){ctx.fillStyle='#ff9f1c';ctx.fillRect(hunter.x*C,hunter.y*C,C,C);ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.strokeRect(hunter.x*C+1,hunter.y*C+1,C-2,C-2)}
   for(const e of enemies){if(e.type?.draw)e.type.draw(ctx,e.x*C,e.y*C,e.r*C);else{ctx.beginPath();ctx.fillStyle='#ff5470';ctx.arc(e.x*C,e.y*C,e.r*C,0,Math.PI*2);ctx.fill()}}
