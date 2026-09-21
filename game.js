@@ -15,7 +15,7 @@ const MODES={
  hard:{lives:3,target:.75,balls:6,ballSpeed:5.2,hunterStep:.024}
 };
 let difficulty='easy',theme='classic',grid,player,enemies,hunter,dir={x:0,y:0},nextDir={x:0,y:0},inputHeld=false,running=false,paused=false,lives=5,level=1,score=0,last=0,acc=0,hunterAcc=0,timeLeft=120;
-let bgImage=null,bgPool=[],lastBg=-1,levelComplete=false,completeUntil=0,completeStarted=0,fireworks=[],advancingLevel=false,lastEnemyType=null,currentEnemyType=null;
+let bgImage=null,bgPool=[],lastBg=-1,levelComplete=false,completeUntil=0,completeStarted=0,fireworks=[],advancingLevel=false,lastEnemyType=null,currentEnemyType=null,levelRunTime=0;
 const ui={level:document.getElementById('level'),lives:document.getElementById('lives'),area:document.getElementById('area'),time:document.getElementById('time'),score:document.getElementById('score'),overlay:document.getElementById('overlay'),pauseOverlay:document.getElementById('pauseOverlay')};
 const bgMusic=document.getElementById('bgMusic'),musicVolume=document.getElementById('musicVolume'),musicVolumeValue=document.getElementById('musicVolumeValue'),muteBtn=document.getElementById('muteBtn');
 let musicMuted=localStorage.getItem('xonix.musicMuted')==='1';
@@ -118,7 +118,7 @@ function pickEnemyType(){
  const type=pool[Math.floor(Math.random()*pool.length)];lastEnemyType=type.id;return type;
 }
 function resetLevel(){
- levelComplete=false;completeUntil=0;completeStarted=0;fireworks=[];timeLeft=120;currentEnemyType=pickEnemyType();
+ levelComplete=false;completeUntil=0;completeStarted=0;fireworks=[];timeLeft=120;levelRunTime=0;currentEnemyType=pickEnemyType();
  grid=Array.from({length:H},()=>Array(W).fill(EMPTY));
  for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(x<2||y<2||x>=W-2||y>=H-2)grid[y][x]=LAND;
  player={x:Math.floor(W/2),y:0,onTrail:false};
@@ -183,16 +183,21 @@ function updateCelebration(dt,t){
 }
 function clearTrail(){for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(grid[y][x]===TRAIL)grid[y][x]=EMPTY}
 function respawn(){player={x:Math.floor(W/2),y:0,onTrail:false};hunter={x:Math.floor(W/2),y:H-1,vx:1,vy:-1};dir={x:0,y:0};nextDir={x:0,y:0};inputHeld=false}
+function resetEnemySpeedRamp(){
+ levelRunTime=0;
+ for(const e of enemies){normalizeEnemySpeed(e);e.age=0;e.patternClock=0}
+}
 function loseLife(){
- hitSound();clearTrail();lives--;respawn();updateUI();
+ hitSound();clearTrail();lives--;respawn();resetEnemySpeedRamp();updateUI();
  if(lives<=0){running=false;ui.overlay.classList.remove('hidden');document.getElementById('menuTitle').textContent='GAME OVER';document.getElementById('menuText').textContent='Punteggio '+score;document.getElementById('difficultyBox').style.display='grid';document.getElementById('startBtn').textContent='RIPROVA'}
 }
 function steerToward(e,tx,ty,strength){
  const sp=Math.hypot(e.vx,e.vy)||1,dx=tx-e.x,dy=ty-e.y,d=Math.hypot(dx,dy)||1;
  e.vx=e.vx*(1-strength)+(dx/d)*sp*strength;e.vy=e.vy*(1-strength)+(dy/d)*sp*strength;
 }
+function timeSpeedMultiplier(){return Math.min(1.75,1+levelRunTime*.0045)}
 function normalizeEnemySpeed(e,mult=1){
- const base=Math.hypot(e.baseVx,e.baseVy)*mult,sp=Math.hypot(e.vx,e.vy)||1,k=base/sp;
+ const base=Math.hypot(e.baseVx,e.baseVy)*mult*timeSpeedMultiplier(),sp=Math.hypot(e.vx,e.vy)||1,k=base/sp;
  e.vx*=k;e.vy*=k;
 }
 function startEliteWindup(e){
@@ -289,6 +294,7 @@ function moveHunter(){
  if(hunter.x===player.x&&hunter.y===player.y)loseLife();
 }
 function update(dt){
+ levelRunTime+=dt;
  timeLeft-=dt;if(timeLeft<=0){timeLeft=120;loseLife();return}updateUI();
  acc+=dt;updateEnemies(dt);hunterAcc+=dt;
  const speedUps=Math.floor((level-1)/2),hunterStep=MODES[difficulty].hunterStep/Math.pow(1.12,speedUps);

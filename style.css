@@ -283,3 +283,5 @@ img,svg{-webkit-user-drag:none;user-drag:none;pointer-events:none}
 /* v0.3.38: elite enemy telegraph */
 
 /* v0.3.39: elite wind-up telegraph and stronger movement identities */
+
+/* v0.3.40: in-level enemy speed ramp resets on life loss */

@@ -19,7 +19,7 @@
   ['squid','SQUID',1.1,1,'pulse','teleport'],
   ['beetle','BEETLE',1.1,.98,'charge','ram']
  ];
- const makeImage=id=>{const im=new Image();im.src='enemies/sprites/'+id+'.png?v=0.3.39';return im};
+ const makeImage=id=>{const im=new Image();im.src='enemies/sprites/'+id+'.png?v=0.3.40';return im};
  window.XONIX_PLAYER_SPRITE=makeImage('player');
  window.XONIX_ENEMIES=defs.map(([id,label,size,speedMultiplier,movement,eliteSpecial])=>({
   id,label,size,movement,speedMultiplier,eliteSpecial,image:makeImage(id),
