@@ -279,3 +279,5 @@ img,svg{-webkit-user-drag:none;user-drag:none;pointer-events:none}
  .controls{right:calc(clamp(62px,11vw,82px) + max(6px,env(safe-area-inset-right)))}
 }
 .app:has(#overlay:not(.hidden)) .game-hud{display:none}
+
+/* v0.3.38: elite enemy telegraph */

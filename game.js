@@ -126,7 +126,13 @@ function resetLevel(){
  dir={x:0,y:0};nextDir={x:0,y:0};inputHeld=false;enemies=[];
  const m=MODES[difficulty],wins=level-1,extraBalls=Math.ceil(wins/2),speedUps=Math.floor(wins/2);
  const count=Math.min(m.balls+extraBalls,12),s=m.ballSpeed*Math.pow(1.12,speedUps);
- for(let i=0;i<count;i++){const sm=currentEnemyType.speedMultiplier||1,r=.55*(currentEnemyType.size||1);enemies.push({x:15+Math.random()*(W-30),y:12+Math.random()*(H-24),vx:(Math.random()<.5?-1:1)*4.25*s*sm,vy:(Math.random()<.5?-1:1)*3.72*s*sm,r,type:currentEnemyType})}
+ const eliteIndex=currentEnemyType.id==='rock'?-1:Math.floor(Math.random()*count);
+ for(let i=0;i<count;i++){
+  const sm=currentEnemyType.speedMultiplier||1,isElite=i===eliteIndex,baseR=.55*(currentEnemyType.size||1),r=baseR*(isElite?2:1);
+  const vx=(Math.random()<.5?-1:1)*4.25*s*sm,vy=(Math.random()<.5?-1:1)*3.72*s*sm;
+  enemies.push({x:15+Math.random()*(W-30),y:12+Math.random()*(H-24),vx,vy,baseVx:vx,baseVy:vy,r,type:currentEnemyType,isElite,
+   age:0,patternClock:Math.random()*3,specialClock:isElite?2.5+Math.random()*2:999,specialTime:0,specialState:null,trail:[],clones:[]});
+ }
  if(themes[theme]?.type==='classic')bgImage=null;updateUI();
 }
 const INITIAL_LAND=W*H-(W-4)*(H-4),CAPTURABLE_CELLS=W*H-INITIAL_LAND;
@@ -181,20 +187,76 @@ function loseLife(){
  hitSound();clearTrail();lives--;respawn();updateUI();
  if(lives<=0){running=false;ui.overlay.classList.remove('hidden');document.getElementById('menuTitle').textContent='GAME OVER';document.getElementById('menuText').textContent='Punteggio '+score;document.getElementById('difficultyBox').style.display='grid';document.getElementById('startBtn').textContent='RIPROVA'}
 }
+function steerToward(e,tx,ty,strength){
+ const sp=Math.hypot(e.vx,e.vy)||1,dx=tx-e.x,dy=ty-e.y,d=Math.hypot(dx,dy)||1;
+ e.vx=e.vx*(1-strength)+(dx/d)*sp*strength;e.vy=e.vy*(1-strength)+(dy/d)*sp*strength;
+}
+function triggerEliteSpecial(e){
+ const s=e.type.eliteSpecial;e.specialTime=0;e.specialState=s;
+ if(s==='lockon'||s==='homing'||s==='sting'||s==='ram'||s==='targeting')e.specialTime=2.2;
+ else if(s==='phase'||s==='spikeburst'||s==='tractor'||s==='ink'||s==='swarm'||s==='refraction'||s==='split'||s==='overheat'||s==='gravity')e.specialTime=4;
+ else if(s==='multiball')e.specialTime=5;
+ else if(s==='web')e.specialTime=5;
+ else if(s==='teleport'){
+  for(let n=0;n<20;n++){const x=8+Math.random()*(W-16),y=8+Math.random()*(H-16);if(grid[Math.floor(y)]?.[Math.floor(x)]===EMPTY){e.x=x;e.y=y;break}}
+  e.specialTime=.8;
+ }
+ e.specialClock=6+Math.random()*4;
+ if(s==='multiball'||s==='swarm'||s==='refraction'||s==='split')e.clones=[-1,1,2].slice(0,s==='refraction'||s==='split'?2:3).map((k,i)=>({a:(i+1)*2.1,r:2.5+i*.4}));
+}
+function applyEnemyPattern(e,dt){
+ e.age+=dt;e.patternClock+=dt;
+ const p=e.type.movement,sp=Math.hypot(e.vx,e.vy)||1;
+ if(p==='watcher'&&Math.sin(e.age*1.3)>.65)steerToward(e,player.x+.5,player.y+.5,.012);
+ else if(p==='zigzag'&&e.patternClock>1.1){e.patternClock=0;const a=Math.atan2(e.vy,e.vx)+(Math.random()<.5?-1:1)*.72;e.vx=Math.cos(a)*sp;e.vy=Math.sin(a)*sp}
+ else if(p==='drift'){const a=Math.sin(e.age*1.8)*.006,c=Math.cos(a),s=Math.sin(a),x=e.vx;e.vx=x*c-e.vy*s;e.vy=x*s+e.vy*c}
+ else if(p==='dash'){const boost=(e.age%3.2)<.55?1.018:.995;e.vx*=boost;e.vy*=boost}
+ else if(p==='ricochet'){const target=Math.hypot(e.baseVx,e.baseVy)*1.18,k=target/(sp||1);e.vx*=1+(k-1)*.01;e.vy*=1+(k-1)*.01}
+ else if(p==='curve'){const a=.012*dt*60,c=Math.cos(a),s=Math.sin(a),x=e.vx;e.vx=x*c-e.vy*s;e.vy=x*s+e.vy*c}
+ else if(p==='wobble'){const a=Math.sin(e.age*5)*.01,c=Math.cos(a),s=Math.sin(a),x=e.vx;e.vx=x*c-e.vy*s;e.vy=x*s+e.vy*c}
+ else if(p==='grid'&&e.patternClock>1.6){e.patternClock=0;if(Math.abs(e.vx)>Math.abs(e.vy)){e.vy=0;e.vx=Math.sign(e.vx||1)*sp}else{e.vx=0;e.vy=Math.sign(e.vy||1)*sp}}
+ else if(p==='erratic'&&e.patternClock>.55){e.patternClock=0;const a=Math.atan2(e.vy,e.vx)+(Math.random()-.5)*1.05;e.vx=Math.cos(a)*sp;e.vy=Math.sin(a)*sp}
+ else if(p==='mirror'&&e.patternClock>2.2){e.patternClock=0;if(Math.random()<.5)e.vx*=-1;else e.vy*=-1}
+ else if(p==='hunterburst'&&(e.age%4)<.8)steerToward(e,player.x+.5,player.y+.5,.025);
+ else if(p==='stretch'){const k=.75+.5*(.5+.5*Math.sin(e.age*2));const base=Math.hypot(e.baseVx,e.baseVy),q=(base*k)/(sp||1);e.vx*=q;e.vy*=q}
+ else if(p==='frenzy'){const cap=Math.hypot(e.baseVx,e.baseVy)*1.55;if(sp<cap){e.vx*=1.0018;e.vy*=1.0018}}
+ else if(p==='spiral'){const a=(.006+.005*Math.sin(e.age))*dt*60,c=Math.cos(a),s=Math.sin(a),x=e.vx;e.vx=x*c-e.vy*s;e.vy=x*s+e.vy*c}
+ else if(p==='pulse'){const k=.55+1.0*(.5+.5*Math.sin(e.age*3.3)),base=Math.hypot(e.baseVx,e.baseVy),q=(base*k)/(sp||1);e.vx*=q;e.vy*=q}
+ else if(p==='charge'&&e.patternClock>2.7){e.patternClock=0;const a=Math.atan2(e.vy,e.vx);e.vx=Math.cos(a)*sp*1.3;e.vy=Math.sin(a)*sp*1.3}
+}
+function applyEliteSpecial(e,dt){
+ if(!e.isElite||!e.type.eliteSpecial)return;
+ e.specialClock-=dt;if(e.specialClock<=0&&e.specialTime<=0)triggerEliteSpecial(e);
+ if(e.specialTime<=0)return;e.specialTime-=dt;
+ const s=e.specialState;
+ if(s==='lockon'||s==='homing')steerToward(e,player.x+.5,player.y+.5,s==='homing'?.055:.035);
+ else if(s==='sting'){if((e.specialTime% .72)<.18)steerToward(e,player.x+.5,player.y+.5,.14);e.vx*=1.006;e.vy*=1.006}
+ else if(s==='targeting'||s==='ram'){if(e.specialTime>1.55){e.vx*=.97;e.vy*=.97}else{const dx=player.x+.5-e.x,dy=player.y+.5-e.y,sp=Math.max(18,Math.hypot(e.baseVx,e.baseVy)*1.7);if(s==='targeting'){if(Math.abs(dx)>Math.abs(dy)){e.vx=Math.sign(dx)*sp;e.vy=0}else{e.vx=0;e.vy=Math.sign(dy)*sp}}else steerToward(e,player.x+.5,player.y+.5,.2)}}
+ else if(s==='spikeburst')e.r=Math.max(e.r,.55*(e.type.size||1)*2.65);
+ else if(s==='tractor'){const dx=e.x-(player.x+.5),dy=e.y-(player.y+.5),d=Math.hypot(dx,dy);if(d<16&&player.onTrail&&d>1){/* collision pressure represented by enlarged danger aura */e.r=Math.max(e.r,.55*(e.type.size||1)*2.35)}}
+ else if(s==='overheat'){e.vx*=1.004;e.vy*=1.004}
+ else if(s==='gravity'){for(const o of enemies)if(o!==e){const dx=e.x-o.x,dy=e.y-o.y,d=Math.hypot(dx,dy)||1;if(d<18){o.vx+=dx/d*8*dt;o.vy+=dy/d*8*dt}}}
+ else if(s==='phase'){/* phase handled by collision test below */}
+ if(e.specialTime<=0){e.r=.55*(e.type.size||1)*2;e.clones=[];e.specialState=null}
+}
 function updateEnemies(dt){
  for(const e of enemies){
+  applyEnemyPattern(e,dt);applyEliteSpecial(e,dt);
   let nx=e.x+e.vx*dt,ny=e.y+e.vy*dt;
-  const hit=(x,y)=>{const gx=Math.floor(x),gy=Math.floor(y);return gx<0||gy<0||gx>=W||gy>=H||grid[gy][gx]===LAND};
-  if(hit(nx,e.y)){e.vx*=-1;nx=e.x+e.vx*dt;bounceSound()}if(hit(e.x,ny)){e.vy*=-1;ny=e.y+e.vy*dt;bounceSound()}
-  e.x=nx;e.y=ny;const gx=Math.floor(e.x),gy=Math.floor(e.y);
+  const phased=e.isElite&&e.specialState==='phase'&&e.specialTime>0;
+  const hit=(x,y)=>{const gx=Math.floor(x),gy=Math.floor(y);return gx<0||gy<0||gx>=W||gy>=H||(!phased&&grid[gy][gx]===LAND)};
+  let bounced=false;
+  if(hit(nx,e.y)){e.vx*=-1;nx=e.x+e.vx*dt;bounced=true}if(hit(e.x,ny)){e.vy*=-1;ny=e.y+e.vy*dt;bounced=true}
+  if(bounced){bounceSound();if(e.type.movement==='ricochet'){e.vx*=1.06;e.vy*=1.06}}
+  e.x=Math.max(.5,Math.min(W-.5,nx));e.y=Math.max(.5,Math.min(H-.5,ny));
+  const gx=Math.floor(e.x),gy=Math.floor(e.y);
   if(gx>=0&&gy>=0&&gx<W&&gy<H&&grid[gy][gx]===TRAIL){loseLife();return}
-  const dx=e.x-(player.x+.5),dy=e.y-(player.y+.5);if(dx*dx+dy*dy<1.5&&player.onTrail){loseLife();return}
+  const dx=e.x-(player.x+.5),dy=e.y-(player.y+.5),danger=e.r+.7;if(dx*dx+dy*dy<danger*danger&&player.onTrail){loseLife();return}
  }
  for(let i=0;i<enemies.length;i++)for(let j=i+1;j<enemies.length;j++){
   const a=enemies[i],b=enemies[j],dx=b.x-a.x,dy=b.y-a.y,min=a.r+b.r,d2=dx*dx+dy*dy;
   if(d2>0&&d2<min*min){
-   const d=Math.sqrt(d2),nx=dx/d,ny=dy/d,overlap=(min-d)/2;
-   a.x-=nx*overlap;a.y-=ny*overlap;b.x+=nx*overlap;b.y+=ny*overlap;
+   const d=Math.sqrt(d2),nx=dx/d,ny=dy/d,overlap=(min-d)/2;a.x-=nx*overlap;a.y-=ny*overlap;b.x+=nx*overlap;b.y+=ny*overlap;
    const avx=a.vx,avy=a.vy;a.vx=b.vx;a.vy=b.vy;b.vx=avx;b.vy=avy;bounceSound();
   }
  }
@@ -267,7 +329,18 @@ function draw(){
   else{ctx.shadowColor='#59e6ff';ctx.shadowBlur=12;ctx.fillStyle='#eaffff';ctx.beginPath();ctx.arc(px,py,C*.42,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.strokeStyle='#35c7ff';ctx.lineWidth=2;ctx.stroke();ctx.fillStyle='#35c7ff';ctx.beginPath();ctx.arc(px,py,C*.16,0,Math.PI*2);ctx.fill()}
   ctx.restore();
   if(hunter){ctx.fillStyle='#ff9f1c';ctx.fillRect(hunter.x*C,hunter.y*C,C,C);ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.strokeRect(hunter.x*C+1,hunter.y*C+1,C-2,C-2)}
-  for(const e of enemies){if(e.type?.draw)e.type.draw(ctx,e.x*C,e.y*C,e.r*C);else{ctx.beginPath();ctx.fillStyle='#ff5470';ctx.arc(e.x*C,e.y*C,e.r*C,0,Math.PI*2);ctx.fill()}}
+  for(const e of enemies){
+   if(e.isElite){ctx.save();ctx.beginPath();ctx.strokeStyle=e.specialTime>0?'#fff06a':'#ff9f1c';ctx.lineWidth=3;ctx.shadowColor='#ff9f1c';ctx.shadowBlur=14;ctx.arc(e.x*C,e.y*C,e.r*C*2.15,0,Math.PI*2);ctx.stroke();ctx.restore()}
+   if(e.type?.draw)e.type.draw(ctx,e.x*C,e.y*C,e.r*C);else{ctx.beginPath();ctx.fillStyle='#ff5470';ctx.arc(e.x*C,e.y*C,e.r*C,0,Math.PI*2);ctx.fill()}
+   if(e.isElite&&e.specialTime>0){
+    const s=e.specialState;ctx.save();ctx.globalAlpha=.28;
+    if(s==='ink'){ctx.fillStyle='#090014';ctx.beginPath();ctx.arc(e.x*C,e.y*C,110,0,Math.PI*2);ctx.fill()}
+    else if(s==='web'){ctx.strokeStyle='#e8f4ff';ctx.lineWidth=2;for(let k=1;k<4;k++){ctx.beginPath();ctx.arc(e.x*C,e.y*C,k*18,0,Math.PI*2);ctx.stroke()}}
+    else if(s==='tractor'){ctx.strokeStyle='#8ffcff';ctx.lineWidth=12;ctx.beginPath();ctx.moveTo(e.x*C,e.y*C);ctx.lineTo((player.x+.5)*C,(player.y+.5)*C);ctx.stroke()}
+    else if(e.clones?.length){for(const c of e.clones){const a=e.age*2+c.a,x=(e.x+Math.cos(a)*c.r)*C,y=(e.y+Math.sin(a)*c.r)*C;e.type.draw(ctx,x,y,e.r*C*.65)}}
+    ctx.restore();
+   }
+  }
  }else{
   drawCompletionImageLayer();
   ctx.save();ctx.textAlign='center';ctx.font='bold 42px system-ui';ctx.fillStyle='rgba(255,255,255,.96)';ctx.strokeStyle='rgba(0,0,0,.65)';ctx.lineWidth=6;ctx.strokeText('LIVELLO COMPLETATO!',canvas.width/2,62);ctx.fillText('LIVELLO COMPLETATO!',canvas.width/2,62);ctx.restore();
