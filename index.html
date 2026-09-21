@@ -14,7 +14,7 @@
   <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png" />
   <title>Xonix</title>
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="style.css?v=0.3.32" />
+  <link rel="stylesheet" href="style.css?v=0.3.33" />
 </head>
 <body>
   <div class="rotate-device" aria-live="polite">
@@ -23,20 +23,12 @@
     <span>Xonix richiede la modalità landscape</span>
   </div>
   <main class="app">
-    <header>
-      <div><strong>XONIX</strong><span id="version"> v0.3.32</span></div>
-      <div class="stats">
-        <span>Livello <b id="level">1</b></span>
-        <span>Vite <b id="lives">3</b></span>
-        <span>Area <b id="area">0%</b></span>
-        <span>Punti <b id="score">0</b></span>
-      </div>
-    </header>
-    <section class="game-wrap">
+    <section class="game-layout">
+      <section class="game-wrap">
       <canvas id="game" width="960" height="600" aria-label="Gioco Xonix"></canvas>
       <div id="overlay" class="overlay">
         <div class="panel">
-          <div class="title-intro"><h1 id="menuTitle">XONIX</h1><div class="by-flax">by Flax</div><div class="menu-version">v0.3.32</div></div>
+          <div class="title-intro"><h1 id="menuTitle">XONIX</h1><div class="by-flax">by Flax</div><div class="menu-version">v0.3.33</div></div>
           <p id="menuText">Conquista il campo, rivela lo sfondo e non farti prendere.</p>
           <div id="difficultyBox" class="difficulty">
             <span>DIFFICOLTÀ</span>
@@ -65,6 +57,13 @@
           </div>
           <button id="continueBtn">CONTINUA</button><button id="menuBtn">MENÙ PRINCIPALE</button></div>
       </div>
+      </section>
+      <aside class="game-hud" aria-label="Statistiche partita">
+        <div class="hud-stat"><span>AREA</span><b id="area">0%</b></div>
+        <div class="hud-stat"><span>TIME</span><b id="time">2:00</b></div>
+        <div class="hud-stat"><span>SCORE</span><b id="score">0</b></div>
+        <div class="hud-mini"><span>LV <b id="level">1</b></span><span>♥ <b id="lives">3</b></span></div>
+      </aside>
     </section>
     <section class="controls">
       <div class="dpad" aria-label="Comandi direzionali">
@@ -76,6 +75,6 @@
     <footer>Frecce / WASD · Touch: pulsanti o swipe</footer>
   </main>
   <audio id="bgMusic" loop preload="auto"></audio>
-  <script src="game.js?v=0.3.32"></script>
+  <script src="game.js?v=0.3.33"></script>
 </body>
 </html>

@@ -14,9 +14,9 @@ const MODES={
  normal:{lives:3,target:.75,balls:4,ballSpeed:4.2,hunterStep:.034},
  hard:{lives:3,target:.75,balls:6,ballSpeed:5.2,hunterStep:.024}
 };
-let difficulty='easy',theme='classic',grid,player,enemies,hunter,dir={x:0,y:0},nextDir={x:0,y:0},inputHeld=false,running=false,paused=false,lives=5,level=1,score=0,last=0,acc=0,hunterAcc=0;
+let difficulty='easy',theme='classic',grid,player,enemies,hunter,dir={x:0,y:0},nextDir={x:0,y:0},inputHeld=false,running=false,paused=false,lives=5,level=1,score=0,last=0,acc=0,hunterAcc=0,timeLeft=120;
 let bgImage=null,bgPool=[],lastBg=-1,levelComplete=false,completeUntil=0,completeStarted=0,fireworks=[],advancingLevel=false;
-const ui={level:document.getElementById('level'),lives:document.getElementById('lives'),area:document.getElementById('area'),score:document.getElementById('score'),overlay:document.getElementById('overlay'),pauseOverlay:document.getElementById('pauseOverlay')};
+const ui={level:document.getElementById('level'),lives:document.getElementById('lives'),area:document.getElementById('area'),time:document.getElementById('time'),score:document.getElementById('score'),overlay:document.getElementById('overlay'),pauseOverlay:document.getElementById('pauseOverlay')};
 const bgMusic=document.getElementById('bgMusic'),musicVolume=document.getElementById('musicVolume'),musicVolumeValue=document.getElementById('musicVolumeValue'),muteBtn=document.getElementById('muteBtn');
 let musicMuted=localStorage.getItem('xonix.musicMuted')==='1';
 let musicLevel=Math.max(0,Math.min(1,Number(localStorage.getItem('xonix.musicVolume')??.35)));
@@ -112,7 +112,7 @@ function pickBackground(){
  lastBg=i;return new Promise(resolve=>{const im=new Image();im.onload=()=>{bgImage=im;resolve()};im.onerror=()=>{bgImage=null;resolve()};im.src=bgPool[i]});
 }
 function resetLevel(){
- levelComplete=false;completeUntil=0;completeStarted=0;fireworks=[];
+ levelComplete=false;completeUntil=0;completeStarted=0;fireworks=[];timeLeft=120;
  grid=Array.from({length:H},()=>Array(W).fill(EMPTY));
  for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(x<2||y<2||x>=W-2||y>=H-2)grid[y][x]=LAND;
  player={x:Math.floor(W/2),y:0,onTrail:false};
@@ -125,7 +125,7 @@ function resetLevel(){
 }
 const INITIAL_LAND=W*H-(W-4)*(H-4),CAPTURABLE_CELLS=W*H-INITIAL_LAND;
 function capturedRatio(){let land=0;for(const row of grid)for(const c of row)if(c===LAND)land++;return Math.max(0,land-INITIAL_LAND)/CAPTURABLE_CELLS}
-function updateUI(){ui.level.textContent=level;ui.lives.textContent=lives;ui.area.textContent=(capturedRatio()*100).toFixed(1)+'%';ui.score.textContent=score}
+function updateUI(){ui.level.textContent=level;ui.lives.textContent=lives;ui.area.textContent=(capturedRatio()*100).toFixed(1)+'%';const s=Math.max(0,Math.ceil(timeLeft));ui.time.textContent=Math.floor(s/60)+':'+String(s%60).padStart(2,'0');ui.time.classList.toggle('urgent',s<=20);ui.score.textContent=score}
 function setDir(x,y){nextDir={x,y};dir={x,y}}
 function stopPlayer(){inputHeld=false;dir={x:0,y:0};nextDir={x:0,y:0}}
 function stepPlayer(){
@@ -210,6 +210,7 @@ function moveHunter(){
  if(hunter.x===player.x&&hunter.y===player.y)loseLife();
 }
 function update(dt){
+ timeLeft-=dt;if(timeLeft<=0){timeLeft=120;loseLife();return}updateUI();
  acc+=dt;updateEnemies(dt);hunterAcc+=dt;
  const speedUps=Math.floor((level-1)/2),hunterStep=MODES[difficulty].hunterStep/Math.pow(1.12,speedUps);
  if(hunterAcc>=hunterStep){hunterAcc=0;moveHunter()}
@@ -254,7 +255,13 @@ function draw(){
  if(hasBg)drawLandTint(.48);
  if(!levelComplete){
   ctx.fillStyle='#f9e45b';for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(grid[y][x]===TRAIL)ctx.fillRect(x*C,y*C,C,C);
-  ctx.fillStyle='#eaf6ff';ctx.fillRect(player.x*C+1,player.y*C+1,C-2,C-2);
+  ctx.save();
+  const px=player.x*C+C/2,py=player.y*C+C/2;
+  ctx.shadowColor='#59e6ff';ctx.shadowBlur=12;
+  ctx.fillStyle='#eaffff';ctx.beginPath();ctx.arc(px,py,C*.42,0,Math.PI*2);ctx.fill();
+  ctx.shadowBlur=0;ctx.strokeStyle='#35c7ff';ctx.lineWidth=2;ctx.stroke();
+  ctx.fillStyle='#35c7ff';ctx.beginPath();ctx.arc(px,py,C*.16,0,Math.PI*2);ctx.fill();
+  ctx.restore();
   if(hunter){ctx.fillStyle='#ff9f1c';ctx.fillRect(hunter.x*C,hunter.y*C,C,C);ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.strokeRect(hunter.x*C+1,hunter.y*C+1,C-2,C-2)}
   for(const e of enemies){ctx.beginPath();ctx.fillStyle='#ff5470';ctx.arc(e.x*C,e.y*C,e.r*C,0,Math.PI*2);ctx.fill()}
  }else{

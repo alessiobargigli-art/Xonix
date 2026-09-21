@@ -256,3 +256,26 @@ img,svg{-webkit-user-drag:none;user-drag:none;pointer-events:none}
  .access-row button{padding:5px 8px;font-size:10px}
  .access-status{margin-top:3px}
 }
+
+/* v0.3.33: arcade-style mobile layout with a narrow right HUD */
+.game-layout{position:relative;flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) clamp(72px,11vw,112px);gap:4px;overflow:hidden}
+.game-layout .game-wrap{min-width:0;min-height:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center}
+.game-layout canvas{width:auto;height:auto;max-width:100%;max-height:100%;aspect-ratio:16/10}
+.game-hud{min-width:0;background:#07111d;border-left:1px solid #1d9fd1;padding:clamp(5px,1vw,10px) 4px;display:flex;flex-direction:column;align-items:stretch;justify-content:space-around;text-align:center;z-index:4}
+.hud-stat{display:grid;gap:2px}
+.hud-stat span{font-size:clamp(8px,1.4vw,11px);font-weight:900;letter-spacing:.08em;color:#8fdcff}
+.hud-stat b{font-size:clamp(15px,3vw,28px);line-height:1;color:#f4fbff;text-shadow:0 0 8px rgba(53,199,255,.5);font-variant-numeric:tabular-nums}
+.hud-stat #time.urgent{color:#ff5470;text-shadow:0 0 10px rgba(255,84,112,.7)}
+.hud-mini{display:flex;justify-content:space-around;gap:2px;font-size:clamp(8px,1.3vw,11px);opacity:.72}
+@media (orientation:landscape) and ((max-width:899px) or (pointer:coarse)){
+ .app{display:block!important}
+ .game-layout{position:fixed;inset:0;width:100vw;height:calc(var(--vh,1vh)*100);grid-template-columns:minmax(0,1fr) clamp(62px,11vw,82px);gap:2px;padding:0 max(2px,env(safe-area-inset-right)) 0 max(2px,env(safe-area-inset-left))}
+ .game-layout .game-wrap{position:relative;width:100%;height:100%;padding:0;background:#02060c}
+ .game-layout .game-wrap canvas{width:auto;height:auto;max-width:100%;max-height:100%}
+ .game-hud{padding:max(4px,env(safe-area-inset-top)) 2px max(4px,env(safe-area-inset-bottom));border-left-width:1px}
+ .hud-stat span{font-size:clamp(7px,1.7vh,10px)}
+ .hud-stat b{font-size:clamp(13px,4.5vh,23px)}
+ .hud-mini{font-size:clamp(7px,1.6vh,10px)}
+ .controls{right:calc(clamp(62px,11vw,82px) + max(6px,env(safe-area-inset-right)))}
+}
+.app:has(#overlay:not(.hidden)) .game-hud{display:none}
