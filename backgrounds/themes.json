@@ -35,7 +35,17 @@
     "path": "bts",
     "music": "assets/music/swim8bit.mp3",
     "visibility": [
-      "btsexy"
+      "public"
+    ]
+  },
+  {
+    "id": "miss96",
+    "label": "MISS96",
+    "type": "images",
+    "path": "miss96",
+    "music": "assets/music/hypnotic-loop.mp3",
+    "visibility": [
+      "friends"
     ]
   }
 ]
