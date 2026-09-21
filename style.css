@@ -279,3 +279,11 @@ img,svg{-webkit-user-drag:none;user-drag:none;pointer-events:none}
  .controls{right:calc(clamp(62px,11vw,82px) + max(6px,env(safe-area-inset-right)))}
 }
 .app:has(#overlay:not(.hidden)) .game-hud{display:none}
+
+/* v0.3.36: keep access revocation visible on short mobile landscape screens */
+.access-panel{position:relative;z-index:3}
+.access-status button{display:inline-flex!important;align-items:center;gap:4px;min-height:28px}
+@media (orientation:landscape) and (max-height:430px) and ((max-width:899px) or (pointer:coarse)){
+ .overlay .panel{overflow:auto}
+ .access-panel{position:absolute;right:8px;bottom:8px;width:min(42vw,300px);margin:0}
+}
