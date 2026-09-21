@@ -126,12 +126,12 @@ function resetLevel(){
  dir={x:0,y:0};nextDir={x:0,y:0};inputHeld=false;enemies=[];
  const m=MODES[difficulty],wins=level-1,extraBalls=Math.ceil(wins/2),speedUps=Math.floor(wins/2);
  const count=Math.min(m.balls+extraBalls,12),s=m.ballSpeed*Math.pow(1.12,speedUps);
- const eliteIndex=currentEnemyType.id==='rock'?-1:Math.floor(Math.random()*count);
+ const eliteIndex=Math.floor(Math.random()*count);
  for(let i=0;i<count;i++){
   const sm=currentEnemyType.speedMultiplier||1,isElite=i===eliteIndex,baseR=.55*(currentEnemyType.size||1),r=baseR*(isElite?2:1);
   const vx=(Math.random()<.5?-1:1)*4.25*s*sm,vy=(Math.random()<.5?-1:1)*3.72*s*sm;
   enemies.push({x:15+Math.random()*(W-30),y:12+Math.random()*(H-24),vx,vy,baseVx:vx,baseVy:vy,r,type:currentEnemyType,isElite,
-   age:0,patternClock:Math.random()*3,specialClock:isElite?2.5+Math.random()*2:999,specialTime:0,specialState:null,trail:[],clones:[]});
+   age:0,patternClock:Math.random()*3,specialClock:isElite?3+Math.random()*2:999,specialTime:0,specialState:null,specialWindup:0,trail:[],clones:[]});
  }
  if(themes[theme]?.type==='classic')bgImage=null;updateUI();
 }
@@ -191,53 +191,64 @@ function steerToward(e,tx,ty,strength){
  const sp=Math.hypot(e.vx,e.vy)||1,dx=tx-e.x,dy=ty-e.y,d=Math.hypot(dx,dy)||1;
  e.vx=e.vx*(1-strength)+(dx/d)*sp*strength;e.vy=e.vy*(1-strength)+(dy/d)*sp*strength;
 }
-function triggerEliteSpecial(e){
- const s=e.type.eliteSpecial;e.specialTime=0;e.specialState=s;
+function normalizeEnemySpeed(e,mult=1){
+ const base=Math.hypot(e.baseVx,e.baseVy)*mult,sp=Math.hypot(e.vx,e.vy)||1,k=base/sp;
+ e.vx*=k;e.vy*=k;
+}
+function startEliteWindup(e){
+ e.specialState=e.type.eliteSpecial;e.specialWindup=1.15;e.specialTime=0;e.specialClock=7+Math.random()*4;
+ e.clones=[];
+}
+function activateEliteSpecial(e){
+ const s=e.specialState;e.specialWindup=0;
  if(s==='lockon'||s==='homing'||s==='sting'||s==='ram'||s==='targeting')e.specialTime=2.2;
- else if(s==='phase'||s==='spikeburst'||s==='tractor'||s==='ink'||s==='swarm'||s==='refraction'||s==='split'||s==='overheat'||s==='gravity')e.specialTime=4;
- else if(s==='multiball')e.specialTime=5;
- else if(s==='web')e.specialTime=5;
+ else if(s==='phase'||s==='spikeburst'||s==='tractor'||s==='ink'||s==='swarm'||s==='refraction'||s==='split'||s==='overheat'||s==='gravity'||s==='quake')e.specialTime=4;
+ else if(s==='multiball'||s==='web')e.specialTime=5;
  else if(s==='teleport'){
   for(let n=0;n<20;n++){const x=8+Math.random()*(W-16),y=8+Math.random()*(H-16);if(grid[Math.floor(y)]?.[Math.floor(x)]===EMPTY){e.x=x;e.y=y;break}}
   e.specialTime=.8;
  }
- e.specialClock=6+Math.random()*4;
  if(s==='multiball'||s==='swarm'||s==='refraction'||s==='split')e.clones=[-1,1,2].slice(0,s==='refraction'||s==='split'?2:3).map((k,i)=>({a:(i+1)*2.1,r:2.5+i*.4}));
 }
 function applyEnemyPattern(e,dt){
  e.age+=dt;e.patternClock+=dt;
- const p=e.type.movement,sp=Math.hypot(e.vx,e.vy)||1;
- if(p==='watcher'&&Math.sin(e.age*1.3)>.65)steerToward(e,player.x+.5,player.y+.5,.012);
- else if(p==='zigzag'&&e.patternClock>1.1){e.patternClock=0;const a=Math.atan2(e.vy,e.vx)+(Math.random()<.5?-1:1)*.72;e.vx=Math.cos(a)*sp;e.vy=Math.sin(a)*sp}
- else if(p==='drift'){const a=Math.sin(e.age*1.8)*.006,c=Math.cos(a),s=Math.sin(a),x=e.vx;e.vx=x*c-e.vy*s;e.vy=x*s+e.vy*c}
- else if(p==='dash'){const boost=(e.age%3.2)<.55?1.018:.995;e.vx*=boost;e.vy*=boost}
- else if(p==='ricochet'){const target=Math.hypot(e.baseVx,e.baseVy)*1.18,k=target/(sp||1);e.vx*=1+(k-1)*.01;e.vy*=1+(k-1)*.01}
- else if(p==='curve'){const a=.012*dt*60,c=Math.cos(a),s=Math.sin(a),x=e.vx;e.vx=x*c-e.vy*s;e.vy=x*s+e.vy*c}
- else if(p==='wobble'){const a=Math.sin(e.age*5)*.01,c=Math.cos(a),s=Math.sin(a),x=e.vx;e.vx=x*c-e.vy*s;e.vy=x*s+e.vy*c}
- else if(p==='grid'&&e.patternClock>1.6){e.patternClock=0;if(Math.abs(e.vx)>Math.abs(e.vy)){e.vy=0;e.vx=Math.sign(e.vx||1)*sp}else{e.vx=0;e.vy=Math.sign(e.vy||1)*sp}}
- else if(p==='erratic'&&e.patternClock>.55){e.patternClock=0;const a=Math.atan2(e.vy,e.vx)+(Math.random()-.5)*1.05;e.vx=Math.cos(a)*sp;e.vy=Math.sin(a)*sp}
- else if(p==='mirror'&&e.patternClock>2.2){e.patternClock=0;if(Math.random()<.5)e.vx*=-1;else e.vy*=-1}
- else if(p==='hunterburst'&&(e.age%4)<.8)steerToward(e,player.x+.5,player.y+.5,.025);
- else if(p==='stretch'){const k=.75+.5*(.5+.5*Math.sin(e.age*2));const base=Math.hypot(e.baseVx,e.baseVy),q=(base*k)/(sp||1);e.vx*=q;e.vy*=q}
- else if(p==='frenzy'){const cap=Math.hypot(e.baseVx,e.baseVy)*1.55;if(sp<cap){e.vx*=1.0018;e.vy*=1.0018}}
- else if(p==='spiral'){const a=(.006+.005*Math.sin(e.age))*dt*60,c=Math.cos(a),s=Math.sin(a),x=e.vx;e.vx=x*c-e.vy*s;e.vy=x*s+e.vy*c}
- else if(p==='pulse'){const k=.55+1.0*(.5+.5*Math.sin(e.age*3.3)),base=Math.hypot(e.baseVx,e.baseVy),q=(base*k)/(sp||1);e.vx*=q;e.vy*=q}
- else if(p==='charge'&&e.patternClock>2.7){e.patternClock=0;const a=Math.atan2(e.vy,e.vx);e.vx=Math.cos(a)*sp*1.3;e.vy=Math.sin(a)*sp*1.3}
+ const p=e.type.movement,base=Math.hypot(e.baseVx,e.baseVy),sp=Math.hypot(e.vx,e.vy)||1;
+ if(p==='watcher'){if(e.patternClock>.45){e.patternClock=0;steerToward(e,player.x+.5,player.y+.5,.22)}}
+ else if(p==='zigzag'&&e.patternClock>.55){e.patternClock=0;const a=Math.atan2(e.vy,e.vx)+(Math.random()<.5?-1:1)*1.0;e.vx=Math.cos(a)*base;e.vy=Math.sin(a)*base}
+ else if(p==='drift'){const a=.035*Math.sin(e.age*2.2),c=Math.cos(a),s=Math.sin(a),x=e.vx;e.vx=x*c-e.vy*s;e.vy=x*s+e.vy*c;normalizeEnemySpeed(e)}
+ else if(p==='dash'){const phase=e.age%3.2,target=phase<.65?1.65:phase<1.35?1.0:.82;normalizeEnemySpeed(e,target)}
+ else if(p==='ricochet'){normalizeEnemySpeed(e,1.08)}
+ else if(p==='curve'){const a=.035*dt*60,c=Math.cos(a),s=Math.sin(a),x=e.vx;e.vx=x*c-e.vy*s;e.vy=x*s+e.vy*c;normalizeEnemySpeed(e)}
+ else if(p==='wobble'){const a=.05*Math.sin(e.age*6),c=Math.cos(a),s=Math.sin(a),x=e.vx;e.vx=x*c-e.vy*s;e.vy=x*s+e.vy*c;normalizeEnemySpeed(e)}
+ else if(p==='grid'&&e.patternClock>.8){e.patternClock=0;const horizontal=Math.random()<.5;e.vx=horizontal?(Math.random()<.5?-1:1)*base:0;e.vy=horizontal?0:(Math.random()<.5?-1:1)*base}
+ else if(p==='erratic'&&e.patternClock>.35){e.patternClock=0;const a=Math.atan2(e.vy,e.vx)+(Math.random()-.5)*1.8;e.vx=Math.cos(a)*base;e.vy=Math.sin(a)*base}
+ else if(p==='mirror'&&e.patternClock>1.25){e.patternClock=0;if(Math.random()<.5)e.vx*=-1;else e.vy*=-1;normalizeEnemySpeed(e)}
+ else if(p==='hunterburst'){if((e.age%3.5)<1.1)steerToward(e,player.x+.5,player.y+.5,.055);normalizeEnemySpeed(e)}
+ else if(p==='heavy'){if(e.patternClock>1.6){e.patternClock=0;const a=Math.atan2(e.vy,e.vx)+(Math.random()-.5)*.35;e.vx=Math.cos(a)*base*.78;e.vy=Math.sin(a)*base*.78}}
+ else if(p==='stretch'){normalizeEnemySpeed(e,.58+.72*(.5+.5*Math.sin(e.age*2.5)))}
+ else if(p==='frenzy'){const phase=e.age%4,target=phase<2?(.8+phase*.38):(1.56-(phase-2)*.38);normalizeEnemySpeed(e,target)}
+ else if(p==='spiral'){const a=(.025+.018*Math.sin(e.age*1.7))*dt*60,c=Math.cos(a),s=Math.sin(a),x=e.vx;e.vx=x*c-e.vy*s;e.vy=x*s+e.vy*c;normalizeEnemySpeed(e)}
+ else if(p==='pulse'){normalizeEnemySpeed(e,(e.age%2.4)<.55?1.65:.62)}
+ else if(p==='charge'){const phase=e.age%3.4;if(phase<.75)normalizeEnemySpeed(e,1.55);else normalizeEnemySpeed(e,.78);if(e.patternClock>3.4){e.patternClock=0;const a=Math.atan2(e.vy,e.vx)+(Math.random()-.5)*.6;e.vx=Math.cos(a)*base;e.vy=Math.sin(a)*base}}
 }
 function applyEliteSpecial(e,dt){
  if(!e.isElite||!e.type.eliteSpecial)return;
- e.specialClock-=dt;if(e.specialClock<=0&&e.specialTime<=0)triggerEliteSpecial(e);
- if(e.specialTime<=0)return;e.specialTime-=dt;
- const s=e.specialState;
- if(s==='lockon'||s==='homing')steerToward(e,player.x+.5,player.y+.5,s==='homing'?.055:.035);
- else if(s==='sting'){if((e.specialTime% .72)<.18)steerToward(e,player.x+.5,player.y+.5,.14);e.vx*=1.006;e.vy*=1.006}
- else if(s==='targeting'||s==='ram'){if(e.specialTime>1.55){e.vx*=.97;e.vy*=.97}else{const dx=player.x+.5-e.x,dy=player.y+.5-e.y,sp=Math.max(18,Math.hypot(e.baseVx,e.baseVy)*1.7);if(s==='targeting'){if(Math.abs(dx)>Math.abs(dy)){e.vx=Math.sign(dx)*sp;e.vy=0}else{e.vx=0;e.vy=Math.sign(dy)*sp}}else steerToward(e,player.x+.5,player.y+.5,.2)}}
+ if(e.specialWindup>0){
+  e.specialWindup-=dt;normalizeEnemySpeed(e,.28);
+  if(e.specialWindup<=0)activateEliteSpecial(e);
+  return;
+ }
+ if(e.specialTime<=0){e.specialClock-=dt;if(e.specialClock<=0){startEliteWindup(e);return}normalizeEnemySpeed(e);return}
+ e.specialTime-=dt;const s=e.specialState;
+ if(s==='lockon'||s==='homing'){steerToward(e,player.x+.5,player.y+.5,s==='homing'?.075:.055);normalizeEnemySpeed(e,1.35)}
+ else if(s==='sting'){if((e.specialTime%.72)<.2)steerToward(e,player.x+.5,player.y+.5,.18);normalizeEnemySpeed(e,1.55)}
+ else if(s==='targeting'||s==='ram'){const dx=player.x+.5-e.x,dy=player.y+.5-e.y;if(s==='targeting'){if(Math.abs(dx)>Math.abs(dy)){e.vx=Math.sign(dx)*Math.hypot(e.baseVx,e.baseVy)*1.45;e.vy=0}else{e.vx=0;e.vy=Math.sign(dy)*Math.hypot(e.baseVx,e.baseVy)*1.45}}else{steerToward(e,player.x+.5,player.y+.5,.16);normalizeEnemySpeed(e,1.5)}}
  else if(s==='spikeburst')e.r=Math.max(e.r,.55*(e.type.size||1)*2.65);
- else if(s==='tractor'){const dx=e.x-(player.x+.5),dy=e.y-(player.y+.5),d=Math.hypot(dx,dy);if(d<16&&player.onTrail&&d>1){/* collision pressure represented by enlarged danger aura */e.r=Math.max(e.r,.55*(e.type.size||1)*2.35)}}
- else if(s==='overheat'){e.vx*=1.004;e.vy*=1.004}
+ else if(s==='tractor'){const dx=e.x-(player.x+.5),dy=e.y-(player.y+.5),d=Math.hypot(dx,dy);if(d<16&&player.onTrail&&d>1)e.r=Math.max(e.r,.55*(e.type.size||1)*2.35)}
+ else if(s==='overheat')normalizeEnemySpeed(e,1.55)
  else if(s==='gravity'){for(const o of enemies)if(o!==e){const dx=e.x-o.x,dy=e.y-o.y,d=Math.hypot(dx,dy)||1;if(d<18){o.vx+=dx/d*8*dt;o.vy+=dy/d*8*dt}}}
- else if(s==='phase'){/* phase handled by collision test below */}
- if(e.specialTime<=0){e.r=.55*(e.type.size||1)*2;e.clones=[];e.specialState=null}
+ else if(s==='quake'){e.r=Math.max(e.r,.55*(e.type.size||1)*2.25)}
+ if(e.specialTime<=0){e.r=.55*(e.type.size||1)*2;e.clones=[];e.specialState=null;normalizeEnemySpeed(e)}
 }
 function updateEnemies(dt){
  for(const e of enemies){
@@ -330,7 +341,7 @@ function draw(){
   ctx.restore();
   if(hunter){ctx.fillStyle='#ff9f1c';ctx.fillRect(hunter.x*C,hunter.y*C,C,C);ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.strokeRect(hunter.x*C+1,hunter.y*C+1,C-2,C-2)}
   for(const e of enemies){
-   if(e.isElite){ctx.save();ctx.beginPath();ctx.strokeStyle=e.specialTime>0?'#fff06a':'#ff9f1c';ctx.lineWidth=3;ctx.shadowColor='#ff9f1c';ctx.shadowBlur=14;ctx.arc(e.x*C,e.y*C,e.r*C*2.15,0,Math.PI*2);ctx.stroke();ctx.restore()}
+   if(e.isElite){ctx.save();const winding=e.specialWindup>0,pulse=.5+.5*Math.sin(performance.now()*.018);ctx.beginPath();ctx.strokeStyle=winding?'#ffffff':(e.specialTime>0?'#fff06a':'#ff9f1c');ctx.lineWidth=winding?5:3;ctx.shadowColor=winding?'#ffffff':'#ff9f1c';ctx.shadowBlur=winding?22+18*pulse:14;ctx.arc(e.x*C,e.y*C,e.r*C*(winding?2.25+(.18*pulse):2.15),0,Math.PI*2);ctx.stroke();if(winding){ctx.globalAlpha=.5+.35*pulse;ctx.beginPath();ctx.strokeStyle='#ff5470';ctx.lineWidth=2;ctx.arc(e.x*C,e.y*C,e.r*C*(2.7-.25*pulse),0,Math.PI*2);ctx.stroke()}ctx.restore()}
    if(e.type?.draw)e.type.draw(ctx,e.x*C,e.y*C,e.r*C);else{ctx.beginPath();ctx.fillStyle='#ff5470';ctx.arc(e.x*C,e.y*C,e.r*C,0,Math.PI*2);ctx.fill()}
    if(e.isElite&&e.specialTime>0){
     const s=e.specialState;ctx.save();ctx.globalAlpha=.28;

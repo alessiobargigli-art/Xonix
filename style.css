@@ -281,3 +281,5 @@ img,svg{-webkit-user-drag:none;user-drag:none;pointer-events:none}
 .app:has(#overlay:not(.hidden)) .game-hud{display:none}
 
 /* v0.3.38: elite enemy telegraph */
+
+/* v0.3.39: elite wind-up telegraph and stronger movement identities */
