@@ -285,3 +285,8 @@ img,svg{-webkit-user-drag:none;user-drag:none;pointer-events:none}
 /* v0.3.39: elite wind-up telegraph and stronger movement identities */
 
 /* v0.3.40: in-level enemy speed ramp resets on life loss */
+
+
+/* v0.3.41: per-game preload splash */
+.preload-overlay{position:fixed;inset:0;z-index:60;display:grid;place-items:center;width:100vw;height:calc(var(--vh,1vh)*100);padding:max(18px,env(safe-area-inset-top)) max(18px,env(safe-area-inset-right)) max(18px,env(safe-area-inset-bottom)) max(18px,env(safe-area-inset-left));background:radial-gradient(circle at 50% 42%,#12334d 0,#071523 38%,#02060c 78%)}
+.preload-overlay.hidden{display:none}.preload-panel{width:min(82vw,560px);text-align:center}.preload-logo{font-size:clamp(48px,12vw,108px);font-weight:950;letter-spacing:.12em;color:#eefaff;text-shadow:0 0 10px #fff,0 0 34px #1d9fd1;margin-bottom:18px}.preload-label{font-size:clamp(10px,2.2vw,14px);font-weight:900;letter-spacing:.22em;color:#8fdcff;margin-bottom:12px}.preload-track{height:14px;background:#07111d;border:1px solid #29455d;overflow:hidden}.preload-bar{width:0;height:100%;background:linear-gradient(90deg,#1d9fd1,#8fdcff);box-shadow:0 0 18px rgba(53,199,255,.7);transition:width .16s ease}.preload-meta{display:flex;justify-content:space-between;gap:12px;margin-top:8px;font-size:11px;letter-spacing:.08em;color:#b9d3e3}.preload-meta b{color:#fff;font-variant-numeric:tabular-nums}@media (orientation:landscape) and (max-height:430px){.preload-logo{font-size:clamp(38px,15vh,66px);margin-bottom:8px}.preload-label{margin-bottom:7px}.preload-track{height:10px}}
