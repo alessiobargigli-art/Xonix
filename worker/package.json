@@ -1,5 +1,5 @@
 {
-  "name": "xonix-images-worker",
+  "name": "xonix-cloudflare-app",
   "private": true,
   "version": "0.1.0",
   "scripts": {"dev":"wrangler dev","deploy":"wrangler deploy"},
