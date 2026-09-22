@@ -294,4 +294,4 @@ img,svg{-webkit-user-drag:none;user-drag:none;pointer-events:none}
 
 /* v0.3.42: optional online image theme */
 .remote-theme{display:grid;gap:5px;margin-top:8px}.remote-theme.hidden{display:none}.remote-theme input{width:min(100%,430px);justify-self:center;border:1px solid #29455d;background:#07111d;color:#eaf6ff;padding:9px 10px;font:700 12px system-ui;outline:none}.remote-theme small{font-size:9px;opacity:.62;line-height:1.25}
-\n/* v0.3.43: Pexels attribution */\n.pexels-credit{justify-self:center;color:#b9dfff;font-size:10px;text-decoration:underline;text-underline-offset:2px}\n
+\n/* v0.3.44: Pexels attribution */\n.pexels-credit{justify-self:center;color:#b9dfff;font-size:10px;text-decoration:underline;text-underline-offset:2px}\n
