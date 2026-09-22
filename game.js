@@ -99,10 +99,10 @@ function syncRemoteThemeUI(){remoteThemeBox.classList.toggle('hidden',theme!=='r
 async function loadRemoteBackgrounds(){
  bgPool=[];bgImage=null;lastBg=-1;
  const tags=remoteTagList();if(!tags.length)return;
- const url=new URL(remoteEndpoint(),location.href);url.searchParams.set('tags',tags.join(','));url.searchParams.set('limit','20');
+ const url=new URL(remoteEndpoint(),location.href);url.searchParams.set('tags',tags.join(','));url.searchParams.set('limit','10');
  const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error('remote '+r.status);
  const data=await r.json();const items=Array.isArray(data)?data:(Array.isArray(data.images)?data.images:[]);
- bgMetaPool=items.map(x=>typeof x==='string'?{url:x}:x).filter(x=>x&&(x.url||x.image||x.src)).slice(0,20);
+ bgMetaPool=items.map(x=>typeof x==='string'?{url:x}:x).filter(x=>x&&(x.url||x.image||x.src)).slice(0,10);
  bgPool=bgMetaPool.map(x=>x.url||x.image||x.src);
  if(bgPool.length)await pickBackground();
 }
