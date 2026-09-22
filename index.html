@@ -14,7 +14,7 @@
   <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png" />
   <title>Xonix</title>
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="style.css?v=0.3.41" />
+  <link rel="stylesheet" href="style.css?v=0.3.42" />
 </head>
 <body>
   <div class="rotate-device" aria-live="polite">
@@ -28,7 +28,7 @@
       <canvas id="game" width="960" height="600" aria-label="Gioco Xonix"></canvas>
       <div id="overlay" class="overlay">
         <div class="panel">
-          <div class="title-intro"><h1 id="menuTitle">XONIX</h1><div class="by-flax">by Flax</div><div class="menu-version">v0.3.41</div></div>
+          <div class="title-intro"><h1 id="menuTitle">XONIX</h1><div class="by-flax">by Flax</div><div class="menu-version">v0.3.42</div></div>
           <p id="menuText">Conquista il campo, rivela lo sfondo e non farti prendere.</p>
           <div id="difficultyBox" class="difficulty">
             <span>DIFFICOLTÀ</span>
@@ -41,6 +41,10 @@
           <div id="themeBox" class="difficulty">
             <span>TEMA</span>
             <div id="themeButtons" class="difficulty-buttons"></div>
+            <div id="remoteThemeBox" class="remote-theme hidden">
+              <input id="remoteTags" type="text" inputmode="text" autocomplete="off" spellcheck="false" placeholder="tag, es. cosplay anime beach">
+              <small>Usa fino a 20 immagini temporanee per partita. Endpoint configurabile, fallback locale.</small>
+            </div>
           </div>
           <div class="main-actions"><button id="startBtn" class="start">GIOCA</button><button id="accessBtn" class="refresh">ACCESSI</button><button id="refreshBtn" class="refresh">AGGIORNA</button></div>
           <div id="accessPanel" class="access-panel hidden">
@@ -83,7 +87,7 @@
     <footer>Frecce / WASD · Touch: pulsanti o swipe</footer>
   </main>
   <audio id="bgMusic" loop preload="auto"></audio>
-  <script src="enemies/library.js?v=0.3.41"></script>
-  <script src="game.js?v=0.3.41"></script>
+  <script src="enemies/library.js?v=0.3.42"></script>
+  <script src="game.js?v=0.3.42"></script>
 </body>
 </html>
