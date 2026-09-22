@@ -1,4 +1,4 @@
-const VERSION='0.3.47';
+const VERSION='0.3.48';
 const CACHE='xonix-'+VERSION;
 const CORE=['./','./index.html','./style.css?v='+VERSION,'./game.js?v='+VERSION,'./enemies/library.js?v='+VERSION,'./manifest.webmanifest','./icon.svg','./icons/icon-180.png','./icons/icon-192.png','./icons/icon-512.png'];
 
@@ -17,6 +17,10 @@ self.addEventListener('activate',event=>{
 self.addEventListener('fetch',event=>{
  if(event.request.method!=='GET')return;
  const url=new URL(event.request.url);
+ if(url.origin===self.location.origin&&url.pathname.startsWith('/api/')){
+  event.respondWith(fetch(event.request,{cache:'no-store'}));
+  return;
+ }
  const isAppShell=url.origin===self.location.origin&&!url.pathname.includes('/backgrounds/');
  if(isAppShell){
   event.respondWith(fetch(event.request,{cache:'no-store'}).then(response=>{
