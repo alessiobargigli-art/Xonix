@@ -398,8 +398,9 @@ function setPreloadProgress(done,total,label){
 function preloadImage(src){return new Promise(resolve=>{const im=new Image();im.onload=()=>resolve(true);im.onerror=()=>resolve(false);im.src=src})}
 async function preloadGameSession(){
  preloadOverlay.classList.remove('hidden');setPreloadProgress(0,1,'Preparazione contenuti…');
- if(themes[theme]?.type!=='classic'&&!bgPool.length)await loadThemeBackgrounds(theme);
- const urls=themes[theme]?.type==='classic'?[]:bgPool.slice(0,20);
+ if(themes[theme]?.type==='remote')await loadRemoteBackgrounds();
+ else if(themes[theme]?.type!=='classic'&&!bgPool.length)await loadThemeBackgrounds(theme);
+ const urls=themes[theme]?.type==='classic'?[]:bgPool.slice(0,10);
  const total=Math.max(1,urls.length+1);let done=0;
  setPreloadProgress(done,total,urls.length?'Precaricamento immagini…':'Preparazione campo…');
  for(const src of urls){await preloadImage(src);done++;setPreloadProgress(done,total,'Immagini '+done+'/'+urls.length)}
