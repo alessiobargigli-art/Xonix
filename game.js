@@ -86,6 +86,25 @@ function consumeInvite(){
 }
 
 let themes={classic:{id:'classic',label:'CLASSICO',type:'classic'}};
+const REMOTE_THEME={id:'remote',label:'ONLINE',type:'remote'};
+themes.remote=REMOTE_THEME;
+const REMOTE_ENDPOINT_KEY='xonix.remoteEndpoint',REMOTE_TAGS_KEY='xonix.remoteTags';
+const remoteThemeBox=document.getElementById('remoteThemeBox'),remoteTags=document.getElementById('remoteTags');
+remoteTags.value=localStorage.getItem(REMOTE_TAGS_KEY)||'';
+remoteTags.addEventListener('input',()=>localStorage.setItem(REMOTE_TAGS_KEY,remoteTags.value));
+function remoteEndpoint(){return (localStorage.getItem(REMOTE_ENDPOINT_KEY)||'./api/images').trim()}
+function remoteTagList(){return remoteTags.value.split(/[#,;\s]+/).map(x=>x.trim()).filter(Boolean).slice(0,8)}
+function syncRemoteThemeUI(){remoteThemeBox.classList.toggle('hidden',theme!=='remote')}
+async function loadRemoteBackgrounds(){
+ bgPool=[];bgImage=null;lastBg=-1;
+ const tags=remoteTagList();if(!tags.length)return;
+ const url=new URL(remoteEndpoint(),location.href);url.searchParams.set('tags',tags.join(','));url.searchParams.set('limit','20');
+ const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error('remote '+r.status);
+ const data=await r.json();const items=Array.isArray(data)?data:(Array.isArray(data.images)?data.images:[]);
+ bgPool=items.map(x=>typeof x==='string'?x:(x.url||x.image||x.src)).filter(Boolean).slice(0,20);
+ if(bgPool.length)await pickBackground();
+}
+
 function loadThemes(){
  return fetch('backgrounds/themes.json',{cache:'no-store'}).then(r=>r.ok?r.json():[]).then(list=>{
   if(Array.isArray(list))for(const t of list)if(t&&t.id)themes[t.id]=t;
@@ -99,11 +118,13 @@ function renderThemeButtons(){
  visible.forEach(t=>{const b=document.createElement('button');b.className='theme'+(t.id===theme?' active':'');b.dataset.theme=t.id;b.textContent=t.label||t.id.toUpperCase();b.addEventListener('click',()=>selectTheme(t.id));box.appendChild(b)});
 }
 function selectTheme(id){
- theme=id;document.querySelectorAll('.theme').forEach(x=>x.classList.toggle('active',x.dataset.theme===id));applyThemeMusic(!bgMusic.paused);return loadThemeBackgrounds(id);
+ theme=id;document.querySelectorAll('.theme').forEach(x=>x.classList.toggle('active',x.dataset.theme===id));syncRemoteThemeUI();applyThemeMusic(!bgMusic.paused);return loadThemeBackgrounds(id);
 }
 function loadThemeBackgrounds(id){
  const t=themes[id];bgPool=[];bgImage=null;lastBg=-1;
- if(!t||t.type==='classic'||!t.path)return Promise.resolve();
+ if(!t||t.type==='classic')return Promise.resolve();
+ if(t.type==='remote')return loadRemoteBackgrounds().catch(()=>{bgPool=[];bgImage=null});
+ if(!t.path)return Promise.resolve();
  return fetch('backgrounds/'+t.path+'/backgrounds.json',{cache:'no-store'}).then(r=>r.ok?r.json():[]).then(files=>{bgPool=Array.isArray(files)?files.map(x=>'backgrounds/'+t.path+'/'+x):[];return bgPool.length?pickBackground():undefined}).catch(()=>{bgPool=[]});
 }
 function pickBackground(){
@@ -445,6 +466,7 @@ function syncAccessUI(){
 }
 consumeInvite();
 syncAccessUI();
+syncRemoteThemeUI();
 loadThemes();resetLevel();requestAnimationFrame(loop);
 if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
 })();
