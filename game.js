@@ -85,7 +85,26 @@ function consumeInvite(){
  history.replaceState(null,'',url.pathname+(url.searchParams.toString()?'?'+url.searchParams:'')+url.hash);
 }
 
-let themes={classic:{id:'classic',label:'CLASSICO',type:'classic'}};
+let themes={classic:{id:'classic',label:'CLASSICO',type:'classic'}};\nlet bgMetaPool=[],bgMeta=null;
+const REMOTE_THEME={id:'remote',label:'ONLINE',type:'remote'};
+themes.remote=REMOTE_THEME;
+const REMOTE_ENDPOINT_KEY='xonix.remoteEndpoint',REMOTE_TAGS_KEY='xonix.remoteTags';
+const remoteThemeBox=document.getElementById('remoteThemeBox'),remoteTags=document.getElementById('remoteTags');
+remoteTags.value=localStorage.getItem(REMOTE_TAGS_KEY)||'';
+remoteTags.addEventListener('input',()=>localStorage.setItem(REMOTE_TAGS_KEY,remoteTags.value));
+function remoteEndpoint(){return (localStorage.getItem(REMOTE_ENDPOINT_KEY)||'/api/images').trim()}
+function remoteTagList(){return remoteTags.value.split(/[#,;\s]+/).map(x=>x.trim()).filter(Boolean).slice(0,8)}
+function syncRemoteThemeUI(){remoteThemeBox.classList.toggle('hidden',theme!=='remote')}
+async function loadRemoteBackgrounds(){
+ bgPool=[];bgImage=null;lastBg=-1;
+ const tags=remoteTagList();if(!tags.length)return;
+ const url=new URL(remoteEndpoint(),location.href);url.searchParams.set('tags',tags.join(','));url.searchParams.set('limit','20');
+ const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error('remote '+r.status);
+ const data=await r.json();const items=Array.isArray(data)?data:(Array.isArray(data.images)?data.images:[]);
+ bgMetaPool=items.map(x=>typeof x==='string'?{url:x}:x).filter(x=>x&&(x.url||x.image||x.src)).slice(0,20);\n bgPool=bgMetaPool.map(x=>x.url||x.image||x.src);
+ if(bgPool.length)await pickBackground();
+}
+
 function loadThemes(){
  return fetch('backgrounds/themes.json',{cache:'no-store'}).then(r=>r.ok?r.json():[]).then(list=>{
   if(Array.isArray(list))for(const t of list)if(t&&t.id)themes[t.id]=t;
@@ -99,17 +118,19 @@ function renderThemeButtons(){
  visible.forEach(t=>{const b=document.createElement('button');b.className='theme'+(t.id===theme?' active':'');b.dataset.theme=t.id;b.textContent=t.label||t.id.toUpperCase();b.addEventListener('click',()=>selectTheme(t.id));box.appendChild(b)});
 }
 function selectTheme(id){
- theme=id;document.querySelectorAll('.theme').forEach(x=>x.classList.toggle('active',x.dataset.theme===id));applyThemeMusic(!bgMusic.paused);return loadThemeBackgrounds(id);
+ theme=id;document.querySelectorAll('.theme').forEach(x=>x.classList.toggle('active',x.dataset.theme===id));syncRemoteThemeUI();applyThemeMusic(!bgMusic.paused);return loadThemeBackgrounds(id);
 }
 function loadThemeBackgrounds(id){
- const t=themes[id];bgPool=[];bgImage=null;lastBg=-1;
- if(!t||t.type==='classic'||!t.path)return Promise.resolve();
+ const t=themes[id];bgPool=[];bgMetaPool=[];bgMeta=null;bgImage=null;lastBg=-1;
+ if(!t||t.type==='classic')return Promise.resolve();
+ if(t.type==='remote')return loadRemoteBackgrounds().catch(()=>{bgPool=[];bgImage=null});
+ if(!t.path)return Promise.resolve();
  return fetch('backgrounds/'+t.path+'/backgrounds.json',{cache:'no-store'}).then(r=>r.ok?r.json():[]).then(files=>{bgPool=Array.isArray(files)?files.map(x=>'backgrounds/'+t.path+'/'+x):[];return bgPool.length?pickBackground():undefined}).catch(()=>{bgPool=[]});
 }
 function pickBackground(){
  const t=themes[theme];if(!t||t.type==='classic'||!bgPool.length){bgImage=null;return Promise.resolve()}
  let i=Math.floor(Math.random()*bgPool.length);if(bgPool.length>1&&i===lastBg)i=(i+1)%bgPool.length;
- lastBg=i;return new Promise(resolve=>{const im=new Image();im.onload=()=>{bgImage=im;resolve()};im.onerror=()=>{bgImage=null;resolve()};im.src=bgPool[i]});
+ lastBg=i;bgMeta=bgMetaPool[i]||null;return new Promise(resolve=>{const im=new Image();im.onload=()=>{bgImage=im;resolve()};im.onerror=()=>{bgImage=null;resolve()};im.src=bgPool[i]});
 }
 function pickEnemyType(){
  const lib=window.XONIX_ENEMIES||[];
@@ -368,7 +389,29 @@ function loop(t){const dt=Math.min(.033,(t-last)/1000||0);last=t;if(running&&!pa
 function showPause(){if(!running||levelComplete)return;paused=true;stopPlayer();pressedKeys.clear();ui.pauseOverlay.classList.remove('hidden')}
 function hidePause(){paused=false;ui.pauseOverlay.classList.add('hidden')}
 function mainMenu(){paused=false;running=false;stopPlayer();pressedKeys.clear();ui.pauseOverlay.classList.add('hidden');ui.overlay.classList.remove('hidden');document.getElementById('menuTitle').textContent='XONIX';document.getElementById('menuText').textContent='Conquista il campo, rivela lo sfondo e non farti prendere.';document.getElementById('difficultyBox').style.display='grid';document.getElementById('themeBox').style.display='grid';document.getElementById('startBtn').textContent='GIOCA'}
-async function start(){startMusic();const m=MODES[difficulty];lives=m.lives;level=1;score=0;running=false;paused=false;advancingLevel=false;ui.pauseOverlay.classList.add('hidden');ui.overlay.classList.add('hidden');if(themes[theme]?.type!=='classic'&&!bgPool.length)await loadThemeBackgrounds(theme);else if(themes[theme]?.type!=='classic'&&!bgImage)await pickBackground();resetLevel();running=true}
+const preloadOverlay=document.getElementById('preloadOverlay'),preloadBar=document.getElementById('preloadBar'),preloadStatus=document.getElementById('preloadStatus'),preloadPercent=document.getElementById('preloadPercent');
+function setPreloadProgress(done,total,label){
+ const pct=total?Math.round(done/total*100):100;preloadBar.style.width=pct+'%';preloadPercent.textContent=pct+'%';preloadStatus.textContent=label||'Caricamento…';
+}
+function preloadImage(src){return new Promise(resolve=>{const im=new Image();im.onload=()=>resolve(true);im.onerror=()=>resolve(false);im.src=src})}
+async function preloadGameSession(){
+ preloadOverlay.classList.remove('hidden');setPreloadProgress(0,1,'Preparazione contenuti…');
+ if(themes[theme]?.type!=='classic'&&!bgPool.length)await loadThemeBackgrounds(theme);
+ const urls=themes[theme]?.type==='classic'?[]:bgPool.slice(0,20);
+ const total=Math.max(1,urls.length+1);let done=0;
+ setPreloadProgress(done,total,urls.length?'Precaricamento immagini…':'Preparazione campo…');
+ for(const src of urls){await preloadImage(src);done++;setPreloadProgress(done,total,'Immagini '+done+'/'+urls.length)}
+ if(themes[theme]?.type!=='classic'&&!bgImage)await pickBackground();
+ done=total;setPreloadProgress(done,total,'Pronto');
+ await new Promise(resolve=>setTimeout(resolve,260));
+ preloadOverlay.classList.add('hidden');
+}
+async function start(){
+ startMusic();const m=MODES[difficulty];lives=m.lives;level=1;score=0;running=false;paused=false;advancingLevel=false;
+ ui.pauseOverlay.classList.add('hidden');ui.overlay.classList.add('hidden');
+ try{await preloadGameSession()}catch(e){console.warn('Preload non completato',e);preloadOverlay.classList.add('hidden')}
+ resetLevel();running=true
+}
 document.querySelectorAll('.diff').forEach(b=>b.addEventListener('click',()=>{difficulty=b.dataset.difficulty;document.querySelectorAll('.diff').forEach(x=>x.classList.toggle('active',x===b))}));
 
 document.getElementById('startBtn').addEventListener('click',start);
@@ -423,6 +466,7 @@ function syncAccessUI(){
 }
 consumeInvite();
 syncAccessUI();
+syncRemoteThemeUI();
 loadThemes();resetLevel();requestAnimationFrame(loop);
 if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
 })();
