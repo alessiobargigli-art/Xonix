@@ -16,7 +16,7 @@ export default {
     },503,headers);
 
     const tags=(u.searchParams.get("tags")||"").split(",").map(x=>x.trim()).filter(Boolean).slice(0,8);
-    const limit=Math.min(Math.max(Number(u.searchParams.get("limit"))||20,1),20);
+    const limit=Math.min(Math.max(Number(u.searchParams.get("limit"))||10,1),10);
     if(!tags.length) return json({images:[],provider:"pexels"},200,headers);
 
     // One normalized Pexels search per game start: saves quota and lets Pexels
