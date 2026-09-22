@@ -368,7 +368,29 @@ function loop(t){const dt=Math.min(.033,(t-last)/1000||0);last=t;if(running&&!pa
 function showPause(){if(!running||levelComplete)return;paused=true;stopPlayer();pressedKeys.clear();ui.pauseOverlay.classList.remove('hidden')}
 function hidePause(){paused=false;ui.pauseOverlay.classList.add('hidden')}
 function mainMenu(){paused=false;running=false;stopPlayer();pressedKeys.clear();ui.pauseOverlay.classList.add('hidden');ui.overlay.classList.remove('hidden');document.getElementById('menuTitle').textContent='XONIX';document.getElementById('menuText').textContent='Conquista il campo, rivela lo sfondo e non farti prendere.';document.getElementById('difficultyBox').style.display='grid';document.getElementById('themeBox').style.display='grid';document.getElementById('startBtn').textContent='GIOCA'}
-async function start(){startMusic();const m=MODES[difficulty];lives=m.lives;level=1;score=0;running=false;paused=false;advancingLevel=false;ui.pauseOverlay.classList.add('hidden');ui.overlay.classList.add('hidden');if(themes[theme]?.type!=='classic'&&!bgPool.length)await loadThemeBackgrounds(theme);else if(themes[theme]?.type!=='classic'&&!bgImage)await pickBackground();resetLevel();running=true}
+const preloadOverlay=document.getElementById('preloadOverlay'),preloadBar=document.getElementById('preloadBar'),preloadStatus=document.getElementById('preloadStatus'),preloadPercent=document.getElementById('preloadPercent');
+function setPreloadProgress(done,total,label){
+ const pct=total?Math.round(done/total*100):100;preloadBar.style.width=pct+'%';preloadPercent.textContent=pct+'%';preloadStatus.textContent=label||'Caricamento…';
+}
+function preloadImage(src){return new Promise(resolve=>{const im=new Image();im.onload=()=>resolve(true);im.onerror=()=>resolve(false);im.src=src})}
+async function preloadGameSession(){
+ preloadOverlay.classList.remove('hidden');setPreloadProgress(0,1,'Preparazione contenuti…');
+ if(themes[theme]?.type!=='classic'&&!bgPool.length)await loadThemeBackgrounds(theme);
+ const urls=themes[theme]?.type==='classic'?[]:bgPool.slice(0,20);
+ const total=Math.max(1,urls.length+1);let done=0;
+ setPreloadProgress(done,total,urls.length?'Precaricamento immagini…':'Preparazione campo…');
+ for(const src of urls){await preloadImage(src);done++;setPreloadProgress(done,total,'Immagini '+done+'/'+urls.length)}
+ if(themes[theme]?.type!=='classic'&&!bgImage)await pickBackground();
+ done=total;setPreloadProgress(done,total,'Pronto');
+ await new Promise(resolve=>setTimeout(resolve,260));
+ preloadOverlay.classList.add('hidden');
+}
+async function start(){
+ startMusic();const m=MODES[difficulty];lives=m.lives;level=1;score=0;running=false;paused=false;advancingLevel=false;
+ ui.pauseOverlay.classList.add('hidden');ui.overlay.classList.add('hidden');
+ try{await preloadGameSession()}catch(e){console.warn('Preload non completato',e);preloadOverlay.classList.add('hidden')}
+ resetLevel();running=true
+}
 document.querySelectorAll('.diff').forEach(b=>b.addEventListener('click',()=>{difficulty=b.dataset.difficulty;document.querySelectorAll('.diff').forEach(x=>x.classList.toggle('active',x===b))}));
 
 document.getElementById('startBtn').addEventListener('click',start);
