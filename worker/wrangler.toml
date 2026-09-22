@@ -1,10 +1,11 @@
-name = "xonix-images"
+name = "xonix"
 main = "src/index.js"
 compatibility_date = "2026-09-22"
 
-[vars]
-# Replace with the deployed GitHub Pages origin, e.g. https://OWNER.github.io
-ALLOWED_ORIGIN = "*"
+[assets]
+directory = ".."
+binding = "ASSETS"
+not_found_handling = "single-page-application"
 
-# Never put PEXELS_API_KEY here.
+# Never put PEXELS_API_KEY in this file.
 # Configure it with: npx wrangler secret put PEXELS_API_KEY
