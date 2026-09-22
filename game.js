@@ -93,11 +93,7 @@ const REMOTE_ENDPOINT_KEY='xonix.remoteEndpoint',REMOTE_TAGS_KEY='xonix.remoteTa
 const remoteThemeBox=document.getElementById('remoteThemeBox'),remoteTags=document.getElementById('remoteTags');
 remoteTags.value=localStorage.getItem(REMOTE_TAGS_KEY)||'';
 remoteTags.addEventListener('input',()=>localStorage.setItem(REMOTE_TAGS_KEY,remoteTags.value));
-function remoteEndpoint(){
- const configured=localStorage.getItem(REMOTE_ENDPOINT_KEY);
- if(configured)return configured.trim();
- return location.hostname.endsWith('.workers.dev')?'/api/images':'https://xonix.alessio-bargigli.workers.dev/api/images';
-}
+function remoteEndpoint(){return '/api/images'}
 function remoteTagList(){return remoteTags.value.split(/[#,;\s]+/).map(x=>x.trim()).filter(Boolean).slice(0,8)}
 function syncRemoteThemeUI(){remoteThemeBox.classList.toggle('hidden',theme!=='remote')}
 async function loadRemoteBackgrounds(){
