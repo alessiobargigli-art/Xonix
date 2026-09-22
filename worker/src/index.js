@@ -3,7 +3,17 @@ export default {
     const u=new URL(request.url);
     if(u.pathname!=="/api/images") return env.ASSETS.fetch(request);
     const headers={"Content-Type":"application/json; charset=utf-8"};
-    if(!env.PEXELS_API_KEY) return json({error:"pexels_not_configured"},503,headers);
+    const envKeys=Object.keys(env).sort();
+    const expectedSecret="PEXELS_API_KEY";
+    if(!env.PEXELS_API_KEY) return json({
+      error:"pexels_not_configured",
+      diagnostics:{
+        availableBindings:envKeys,
+        expectedSecret,
+        expectedSecretPresent:envKeys.includes(expectedSecret),
+        expectedSecretReadable:Boolean(env.PEXELS_API_KEY)
+      }
+    },503,headers);
 
     const tags=(u.searchParams.get("tags")||"").split(",").map(x=>x.trim()).filter(Boolean).slice(0,8);
     const limit=Math.min(Math.max(Number(u.searchParams.get("limit"))||20,1),20);
