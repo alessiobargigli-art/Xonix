@@ -85,7 +85,7 @@ function consumeInvite(){
  history.replaceState(null,'',url.pathname+(url.searchParams.toString()?'?'+url.searchParams:'')+url.hash);
 }
 
-let themes={classic:{id:'classic',label:'CLASSICO',type:'classic'}};
+let themes={classic:{id:'classic',label:'CLASSICO',type:'classic'}};\nlet bgMetaPool=[],bgMeta=null;
 const REMOTE_THEME={id:'remote',label:'ONLINE',type:'remote'};
 themes.remote=REMOTE_THEME;
 const REMOTE_ENDPOINT_KEY='xonix.remoteEndpoint',REMOTE_TAGS_KEY='xonix.remoteTags';
@@ -101,7 +101,7 @@ async function loadRemoteBackgrounds(){
  const url=new URL(remoteEndpoint(),location.href);url.searchParams.set('tags',tags.join(','));url.searchParams.set('limit','20');
  const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error('remote '+r.status);
  const data=await r.json();const items=Array.isArray(data)?data:(Array.isArray(data.images)?data.images:[]);
- bgPool=items.map(x=>typeof x==='string'?x:(x.url||x.image||x.src)).filter(Boolean).slice(0,20);
+ bgMetaPool=items.map(x=>typeof x==='string'?{url:x}:x).filter(x=>x&&(x.url||x.image||x.src)).slice(0,20);\n bgPool=bgMetaPool.map(x=>x.url||x.image||x.src);
  if(bgPool.length)await pickBackground();
 }
 
@@ -121,7 +121,7 @@ function selectTheme(id){
  theme=id;document.querySelectorAll('.theme').forEach(x=>x.classList.toggle('active',x.dataset.theme===id));syncRemoteThemeUI();applyThemeMusic(!bgMusic.paused);return loadThemeBackgrounds(id);
 }
 function loadThemeBackgrounds(id){
- const t=themes[id];bgPool=[];bgImage=null;lastBg=-1;
+ const t=themes[id];bgPool=[];bgMetaPool=[];bgMeta=null;bgImage=null;lastBg=-1;
  if(!t||t.type==='classic')return Promise.resolve();
  if(t.type==='remote')return loadRemoteBackgrounds().catch(()=>{bgPool=[];bgImage=null});
  if(!t.path)return Promise.resolve();
@@ -130,7 +130,7 @@ function loadThemeBackgrounds(id){
 function pickBackground(){
  const t=themes[theme];if(!t||t.type==='classic'||!bgPool.length){bgImage=null;return Promise.resolve()}
  let i=Math.floor(Math.random()*bgPool.length);if(bgPool.length>1&&i===lastBg)i=(i+1)%bgPool.length;
- lastBg=i;return new Promise(resolve=>{const im=new Image();im.onload=()=>{bgImage=im;resolve()};im.onerror=()=>{bgImage=null;resolve()};im.src=bgPool[i]});
+ lastBg=i;bgMeta=bgMetaPool[i]||null;return new Promise(resolve=>{const im=new Image();im.onload=()=>{bgImage=im;resolve()};im.onerror=()=>{bgImage=null;resolve()};im.src=bgPool[i]});
 }
 function pickEnemyType(){
  const lib=window.XONIX_ENEMIES||[];
