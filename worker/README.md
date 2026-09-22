@@ -1,14 +1,17 @@
-# Xonix Images Worker
+# Xonix Cloudflare App
 
-Cloudflare Worker used by Xonix to search Pexels by the player's tags.
+Unified Cloudflare deployment for Xonix.
 
-## Setup
+- Static Xonix/PWA assets are served by Cloudflare Workers Static Assets from the repository root.
+- `/api/images` is handled by the Worker and searches Pexels using the player's tags.
+- `PEXELS_API_KEY` remains a Cloudflare secret and is never exposed to the browser.
 
-1. Install Wrangler: `npm install -g wrangler`
-2. Login: `wrangler login`
-3. From this folder set the secret: `wrangler secret put PEXELS_API_KEY`
-4. Set `ALLOWED_ORIGIN` in `wrangler.toml` to the Xonix GitHub Pages origin.
-5. Deploy: `wrangler deploy`
-6. In Xonix set localStorage key `xonix.remoteEndpoint` to the deployed Worker URL plus `/api/images`.
+## Deploy
 
-Example response contains image URL plus Pexels attribution metadata. The API key is never sent to the browser.
+From the `worker` directory:
+
+1. `npm install`
+2. `npx wrangler secret put PEXELS_API_KEY`
+3. `npm run deploy`
+
+The Worker configuration points its static-assets directory to `..`, so the same deployment publishes the game and API together.
