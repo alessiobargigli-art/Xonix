@@ -85,7 +85,8 @@ function consumeInvite(){
  history.replaceState(null,'',url.pathname+(url.searchParams.toString()?'?'+url.searchParams:'')+url.hash);
 }
 
-let themes={classic:{id:'classic',label:'CLASSICO',type:'classic'}};\nlet bgMetaPool=[],bgMeta=null;
+let themes={classic:{id:'classic',label:'CLASSICO',type:'classic'}};
+let bgMetaPool=[],bgMeta=null;
 const REMOTE_THEME={id:'remote',label:'ONLINE',type:'remote'};
 themes.remote=REMOTE_THEME;
 const REMOTE_ENDPOINT_KEY='xonix.remoteEndpoint',REMOTE_TAGS_KEY='xonix.remoteTags';
@@ -101,7 +102,8 @@ async function loadRemoteBackgrounds(){
  const url=new URL(remoteEndpoint(),location.href);url.searchParams.set('tags',tags.join(','));url.searchParams.set('limit','20');
  const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error('remote '+r.status);
  const data=await r.json();const items=Array.isArray(data)?data:(Array.isArray(data.images)?data.images:[]);
- bgMetaPool=items.map(x=>typeof x==='string'?{url:x}:x).filter(x=>x&&(x.url||x.image||x.src)).slice(0,20);\n bgPool=bgMetaPool.map(x=>x.url||x.image||x.src);
+ bgMetaPool=items.map(x=>typeof x==='string'?{url:x}:x).filter(x=>x&&(x.url||x.image||x.src)).slice(0,20);
+ bgPool=bgMetaPool.map(x=>x.url||x.image||x.src);
  if(bgPool.length)await pickBackground();
 }
 
