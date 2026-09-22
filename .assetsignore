@@ -1,0 +1,21 @@
+# Build/dependency files
+node_modules/
+**/node_modules/
+.wrangler/
+.git/
+.github/
+
+# Server-side Worker and deployment configuration
+worker/
+wrangler.toml
+package.json
+package-lock.json
+bun.lock
+bun.lockb
+CLOUDFLARE.md
+
+# Local/dev files
+.dev.vars
+.dev.vars.*
+.env
+.env.*
